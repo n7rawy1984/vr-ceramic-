@@ -9,11 +9,9 @@ import { ReadySignal } from "./scene/ReadySignal";
 import { Room } from "./scene/Room";
 import { VRLocomotion } from "./scene/VRLocomotion";
 import { CeramicCatalog } from "./ui/CeramicCatalog";
-import { Dedication } from "./ui/Dedication";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { Hud } from "./ui/Hud";
 import { LoadingScreen } from "./ui/LoadingScreen";
-import { shouldShowDedication } from "./utils/dedicationSession";
 import { xrStore } from "./xr/store";
 
 /** Swaps navigation scheme based on whether an XR session is active. */
@@ -24,7 +22,6 @@ function SceneControls() {
 
 export default function App() {
   const [sceneReady, setSceneReady] = useState(false);
-  const [showDedication, setShowDedication] = useState(shouldShowDedication);
 
   return (
     <div className="app-root">
@@ -46,7 +43,6 @@ export default function App() {
         </Canvas>
 
         {!sceneReady && <LoadingScreen />}
-        {showDedication && <Dedication onFinished={() => setShowDedication(false)} />}
         <Hud />
         <CeramicCatalog />
       </ErrorBoundary>
