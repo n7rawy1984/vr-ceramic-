@@ -14,6 +14,7 @@ interface WallProps {
   length: number;
   height: number;
   thickness: number;
+  /** Floor-level center of the wall; all geometry extends upward from here. */
   position: [number, number, number];
   rotationY: number;
   material: THREE.Material;
@@ -28,9 +29,11 @@ interface WallProps {
 export function Wall({ length, height, thickness, position, rotationY, material, opening }: WallProps) {
   if (!opening) {
     return (
-      <mesh position={position} rotation={[0, rotationY, 0]} material={material} castShadow receiveShadow>
-        <boxGeometry args={[length, height, thickness]} />
-      </mesh>
+      <group position={position} rotation={[0, rotationY, 0]}>
+        <mesh position={[0, height / 2, 0]} material={material} castShadow receiveShadow>
+          <boxGeometry args={[length, height, thickness]} />
+        </mesh>
+      </group>
     );
   }
 

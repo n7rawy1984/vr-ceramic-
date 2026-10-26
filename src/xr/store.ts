@@ -5,13 +5,19 @@ import { createXRStore } from "@react-three/xr";
  * implementations gives us the comfortable parabolic teleport ray used by
  * VRLocomotion without any custom pointer code.
  *
- * `emulate` is explicitly disabled in production so the IWER desktop
- * emulator (and its room-model chunks) can never be fetched by a real
- * visitor; in dev it keeps its default so `localhost` testing without a
- * headset still works.
+ * Emulation is opt-in and development-only. Keep one store across Vite HMR:
+ * recreating it installs another emulator runtime, DOM UI and global listeners.
  */
-export const xrStore = createXRStore({
+const createStore = () => createXRStore({
   controller: { teleportPointer: true },
   hand: { teleportPointer: true },
-  emulate: import.meta.env.PROD ? false : undefined,
+  emulate: import.meta.env.DEV && import.meta.env.VITE_XR_EMULATOR === "true"
+    ? { inject: true, syntheticEnvironment: false }
+    : false,
 });
+
+export const xrStore: ReturnType<typeof createStore> = import.meta.hot?.data.xrStore ?? createStore();
+if (import.meta.hot) {
+  // The SDK does not dispose emulator UI; retain one device/store until reload.
+  import.meta.hot.data.xrStore = xrStore;
+}

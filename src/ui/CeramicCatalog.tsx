@@ -2,12 +2,14 @@ import { useState } from "react";
 import { FLOOR_CERAMICS, getProductById } from "../catalog/materials";
 import type { MaterialFinish } from "../catalog/types";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
+import { TileLibrary } from "./TileLibrary";
 import { CeramicThumbnail } from "./CeramicThumbnail";
 
 const FINISH_LABEL: Record<MaterialFinish, string> = {
   polished: "Polished",
   matte: "Matte",
   satin: "Satin",
+  honed: "Honed",
 };
 
 /** Screen UI panel for picking a floor ceramic. Swapping the selection
@@ -16,6 +18,8 @@ const FINISH_LABEL: Record<MaterialFinish, string> = {
  * floor — the actual product being demonstrated — stays the visual focus.
  * Collapses to a small edge tab so it can be fully cleared from view. */
 export function CeramicCatalog() {
+  const uploadedProducts = useConfiguratorStore((s) => s.uploadedProducts);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const selectedFloorId = useConfiguratorStore((s) => s.selectedFloorId);
   const previousFloorId = useConfiguratorStore((s) => s.previousFloorId);
   const compareActive = useConfiguratorStore((s) => s.compareActive);
@@ -24,24 +28,29 @@ export function CeramicCatalog() {
 
   const [isOpen, setIsOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= 640));
 
-  const selected = getProductById(selectedFloorId) ?? FLOOR_CERAMICS[0];
-  const previous = previousFloorId ? getProductById(previousFloorId) : undefined;
+  const selected = getProductById(selectedFloorId, uploadedProducts) ?? FLOOR_CERAMICS[0];
+  const previous = previousFloorId ? getProductById(previousFloorId, uploadedProducts) : undefined;
   // Whichever product is actually on the floor right now — the previous one
   // while Compare is active, otherwise the real selection.
   const displayed = compareActive && previous ? previous : selected;
 
   if (!isOpen) {
     return (
+      <>
+      <TileLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} />
       <button className="catalog-tab" onClick={() => setIsOpen(true)} aria-label="Open ceramic catalog">
         <span className="catalog-tab-icon" aria-hidden>
           ◧
         </span>
         <span>Materials</span>
       </button>
+      </>
     );
   }
 
   return (
+    <>
+    <TileLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} />
     <div className="catalog-panel">
       <div className="catalog-header">
         <div className="catalog-header-titles">
@@ -74,6 +83,7 @@ export function CeramicCatalog() {
         </button>
       )}
 
+      <button className="hud-button tile-library-button" onClick={() => setLibraryOpen(true)}>My Tiles · Add Tile</button>
       <div className="catalog-cards">
         {FLOOR_CERAMICS.map((product) => {
           const active = product.id === displayed.id;
@@ -98,5 +108,6 @@ export function CeramicCatalog() {
         })}
       </div>
     </div>
+    </>
   );
 }

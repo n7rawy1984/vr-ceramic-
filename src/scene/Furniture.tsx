@@ -13,7 +13,7 @@ function Sofa() {
   const wood = useMemo(() => mat("#3f2f22", 0.6), []);
 
   return (
-    <group position={[-0.9, 0, -ROOM.length / 2 + 0.55]}>
+    <group position={[-ROOM.width / 2 + 1.15, 0, -ROOM.length / 2 + 0.65]}>
       {/* seat base */}
       <RoundedBox args={[1.7, 0.36, 0.85]} radius={0.07} smoothness={3} position={[0, 0.2, 0]} material={fabric} castShadow receiveShadow />
       {/* backrest */}
@@ -45,7 +45,7 @@ function CoffeeTable() {
   const leg = useMemo(() => mat("#2b2b2b", 0.5, 0.4), []);
 
   return (
-    <group position={[-0.9, 0, -0.6]}>
+    <group position={[-ROOM.width / 2 + 1.15, 0, -ROOM.length / 2 + 1.65]}>
       <mesh position={[0, 0.36, 0]} material={top} castShadow receiveShadow>
         <cylinderGeometry args={[0.42, 0.42, 0.04, 24]} />
       </mesh>
@@ -66,7 +66,7 @@ function SideTable() {
   const decor = useMemo(() => mat("#c98a5b", 0.35), []);
 
   return (
-    <group position={[0.4, 0, -ROOM.length / 2 + 0.55]}>
+    <group position={[-ROOM.width / 2 + 2.45, 0, -ROOM.length / 2 + 0.65]}>
       <mesh position={[0, 0.42, 0]} material={top} castShadow receiveShadow>
         <cylinderGeometry args={[0.22, 0.22, 0.03, 24]} />
       </mesh>
@@ -88,7 +88,7 @@ function SideTable() {
 function FloorLamp() {
   const pole = useMemo(() => mat("#3a3a3a", 0.4, 0.6), []);
   const shade = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#f2ead9", roughness: 0.6, emissive: "#3a2f1a", emissiveIntensity: 0.4 }),
+    () => new THREE.MeshStandardMaterial({ color: "#f2ead9", roughness: 0.6, emissive: "#ffffff", emissiveIntensity: 0.08 }),
     [],
   );
 
@@ -103,7 +103,7 @@ function FloorLamp() {
       <mesh position={[0, 1.58, 0]} material={shade} castShadow>
         <coneGeometry args={[0.16, 0.26, 20, 1, true]} />
       </mesh>
-      <pointLight position={[0, 1.52, 0]} intensity={0.5} distance={3} decay={2} color="#ffdca8" />
+      <pointLight position={[0, 1.52, 0]} intensity={0.12} distance={2} decay={2} color="#ffffff" />
     </group>
   );
 }
@@ -137,7 +137,7 @@ function WallArt() {
   );
 
   return (
-    <group position={[-0.9, 1.7, -ROOM.length / 2 + 0.05]}>
+    <group position={[-ROOM.width / 2 + 1.15, 1.7, -ROOM.length / 2 + 0.08]}>
       <mesh material={frame} castShadow>
         <boxGeometry args={[0.9, 0.6, 0.03]} />
       </mesh>
@@ -148,24 +148,9 @@ function WallArt() {
   );
 }
 
-/** A soft area rug, deliberately small so most of the ceramic floor stays
- * visible — it's meant to accent the seating area, not cover the room. */
-function Rug() {
-  const rugMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#b7462f", roughness: 1 }),
-    [],
-  );
+export function Furniture({ visible = true }: { visible?: boolean }) {
   return (
-    <mesh position={[-0.9, 0.005, -0.45]} rotation={[-Math.PI / 2, 0, 0]} material={rugMaterial} receiveShadow>
-      <circleGeometry args={[0.75, 32]} />
-    </mesh>
-  );
-}
-
-export function Furniture() {
-  return (
-    <group>
-      <Rug />
+    <group name="furniture" visible={visible}>
       <Sofa />
       <CoffeeTable />
       <SideTable />

@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Server credentials and Vercel local project state
+.env
+.env.*
+!.env.example
+.vercel

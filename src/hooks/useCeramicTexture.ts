@@ -2,66 +2,44 @@ import { useEffect, useState } from "react";
 import * as THREE from "three";
 import type { MaterialProduct } from "../catalog/types";
 import { generateCeramicCanvas } from "../textures/generateCeramicTexture";
-
-const textureLoader = new THREE.TextureLoader();
-
-// Small cache so switching back to a previously-selected ceramic is instant
-// and we don't leak GPU textures by re-generating on every selection.
-const cache = new Map<string, THREE.Texture>();
-
-function buildProceduralTexture(product: MaterialProduct): THREE.Texture {
-  const canvas = generateCeramicCanvas(
-    product.proceduralStyle,
-    product.tileWidth,
-    product.tileHeight,
-  );
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
+const loader = new THREE.TextureLoader();
+// Immutable source textures. Materials clone them before setting UV transforms.
+const cache = new Map<string, Promise<THREE.Texture>>();
+function sourceTexture(product: MaterialProduct, key: string) {
+  let pending = cache.get(key);
+  if (!pending) {
+    pending = new Promise<THREE.Texture>((resolve, reject) => {
+      const ready = (texture: THREE.Texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4; resolve(texture);
+      };
+      if (!product.texture && product.source === "upload") { reject(Error("Image access could not be renewed.")); return; }
+      loader.load(product.texture, ready, undefined, () => {
+        if (product.source === "upload") { reject(Error("Saved tile image could not be loaded. Open My Tiles and Refresh to renew image access.")); return; }
+        ready(new THREE.CanvasTexture(generateCeramicCanvas(product.proceduralStyle, product.tileWidth, product.tileHeight)));
+      });
+    });
+    cache.set(key, pending);
+    pending.catch(() => { if (cache.get(key) === pending) cache.delete(key); });
+    while (cache.size > 24) {
+      const oldest = cache.keys().next().value!;
+      const entry = cache.get(oldest)!; cache.delete(oldest);
+      entry.then(texture => texture.dispose()).catch(() => {});
+    }
+  }
+  return pending;
 }
-
-/**
- * Loads a ceramic's real photographed texture from /public/textures/ceramics/
- * when present; otherwise falls back to a generated demo texture so the app
- * looks correct before real product photography is dropped in.
- */
-export function useCeramicTexture(product: MaterialProduct): THREE.Texture | null {
-  const [texture, setTexture] = useState<THREE.Texture | null>(
-    () => cache.get(product.id) ?? null,
-  );
-
+export function useCeramicTexture(product: MaterialProduct) {
+  const key = `${product.id}:${product.texture}`;
+  const [state, setState] = useState<{ key: string; texture: THREE.Texture | null; error: string | null }>({ key, texture: null, error: null });
   useEffect(() => {
     let cancelled = false;
-
-    const cached = cache.get(product.id);
-    if (cached) {
-      setTexture(cached);
-      return;
-    }
-
-    textureLoader.load(
-      product.texture,
-      (loaded) => {
-        if (cancelled) return;
-        loaded.colorSpace = THREE.SRGBColorSpace;
-        loaded.anisotropy = 4;
-        cache.set(product.id, loaded);
-        setTexture(loaded);
-      },
-      undefined,
-      () => {
-        if (cancelled) return;
-        const fallback = buildProceduralTexture(product);
-        cache.set(product.id, fallback);
-        setTexture(fallback);
-      },
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [product]);
-
-  return texture;
+    sourceTexture(product, key).then(texture => {
+      if (!cancelled) setState({ key, texture, error: null });
+    }, () => {
+      if (!cancelled) setState({ key, texture: null, error: "Saved tile image could not be loaded. Open My Tiles and Refresh to renew image access." });
+    });
+    return () => { cancelled = true; };
+  }, [key, product]);
+  // Never render the previous map with the new product's dimensions/finish.
+  return state.key === key ? state : { key, texture: null, error: null };
 }

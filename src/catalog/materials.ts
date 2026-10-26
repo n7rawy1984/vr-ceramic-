@@ -62,6 +62,6 @@ export const CATALOG: Record<string, MaterialProduct[]> = {
   floor: FLOOR_CERAMICS,
 };
 
-export function getProductById(id: string): MaterialProduct | undefined {
-  return FLOOR_CERAMICS.find((p) => p.id === id);
+export function getProductById(id: string, uploaded: MaterialProduct[] = []): MaterialProduct | undefined {
+  return FLOOR_CERAMICS.find((p) => p.id === id) ?? uploaded.find((p) => p.id === id);
 }

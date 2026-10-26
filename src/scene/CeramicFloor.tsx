@@ -1,10 +1,15 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { MeshStandardMaterial } from "three";
 import { getProductById, FLOOR_CERAMICS } from "../catalog/materials";
 import { useTiledCeramicMaterial } from "../materials/useTiledCeramicMaterial";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
 import { ROOM } from "./roomConfig";
 
 export function CeramicFloor() {
+  const loadingMaterial = useMemo(() => new MeshStandardMaterial({ color: "#c6c6c6", roughness: 0.9 }), []);
+  useEffect(() => () => loadingMaterial.dispose(), [loadingMaterial]);
+  const uploadedProducts = useConfiguratorStore((s) => s.uploadedProducts);
+  const setFloorImageError = useConfiguratorStore((s) => s.setFloorImageError);
   const selectedFloorId = useConfiguratorStore((s) => s.selectedFloorId);
   const previousFloorId = useConfiguratorStore((s) => s.previousFloorId);
   const compareActive = useConfiguratorStore((s) => s.compareActive);
@@ -14,17 +19,17 @@ export function CeramicFloor() {
   const displayFloorId = compareActive && previousFloorId ? previousFloorId : selectedFloorId;
 
   const product = useMemo(
-    () => getProductById(displayFloorId) ?? FLOOR_CERAMICS[0],
-    [displayFloorId],
+    () => getProductById(displayFloorId, uploadedProducts) ?? FLOOR_CERAMICS[0],
+    [displayFloorId, uploadedProducts],
   );
 
-  const material = useTiledCeramicMaterial({
+  const { material, error } = useTiledCeramicMaterial({
     product,
     surfaceWidth: ROOM.width,
     surfaceLength: ROOM.length,
   });
 
-  if (!material) return null;
+  useEffect(() => { setFloorImageError(error); }, [error, setFloorImageError]);
 
   return (
     <mesh
@@ -32,7 +37,7 @@ export function CeramicFloor() {
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, 0, 0]}
       receiveShadow
-      material={material}
+      material={material ?? loadingMaterial}
     >
       <planeGeometry args={[ROOM.width, ROOM.length]} />
     </mesh>

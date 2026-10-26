@@ -3,7 +3,7 @@ import * as THREE from "three";
 import type { MaterialProduct } from "../catalog/types";
 import { useCeramicTexture } from "../hooks/useCeramicTexture";
 import { useOptionalTexture } from "../hooks/useOptionalTexture";
-import { cmToM } from "../utils/units";
+import { cmToM, mmToM } from "../utils/units";
 
 interface Options {
   product: MaterialProduct;
@@ -43,29 +43,35 @@ export function useTiledCeramicMaterial({
   product,
   surfaceWidth,
   surfaceLength,
-}: Options): THREE.MeshStandardMaterial | null {
-  const texture = useCeramicTexture(product);
+}: Options) {
+  const { texture, error } = useCeramicTexture(product);
   const normalMap = useOptionalTexture(product.normalTexture);
   const roughnessMap = useOptionalTexture(product.roughnessTexture);
 
-  const repeatX = surfaceWidth / cmToM(product.tileWidth);
-  const repeatY = surfaceLength / cmToM(product.tileHeight);
-  const groutWidthUvX = cmToM(product.groutWidth ?? 0.3) / cmToM(product.tileWidth);
-  const groutWidthUvY = cmToM(product.groutWidth ?? 0.3) / cmToM(product.tileHeight);
+  const tileWidthM = product.physicalSizeMm ? mmToM(product.physicalSizeMm.width) : cmToM(product.tileWidth);
+  const tileHeightM = product.physicalSizeMm ? mmToM(product.physicalSizeMm.height) : cmToM(product.tileHeight);
+  const repeatX = surfaceWidth / tileWidthM;
+  const repeatY = surfaceLength / tileHeightM;
+  const groutWidthUvX = cmToM(product.groutWidth ?? 0.3) / tileWidthM;
+  const groutWidthUvY = cmToM(product.groutWidth ?? 0.3) / tileHeightM;
   const rotationDeg = product.textureRotationDeg ?? 0;
   const tileVariation = product.tileVariation ?? 0.05;
 
   const material = useMemo(() => {
     if (!texture) return null;
 
-    applyTiling(texture, repeatX, repeatY, rotationDeg);
-    if (normalMap) applyTiling(normalMap, repeatX, repeatY, rotationDeg);
-    if (roughnessMap) applyTiling(roughnessMap, repeatX, repeatY, rotationDeg);
+    // UV state belongs to this material usage, never the cached source.
+    const map = texture.clone();
+    const normal = normalMap?.clone();
+    const roughness = roughnessMap?.clone();
+    applyTiling(map, repeatX, repeatY, rotationDeg);
+    if (normal) applyTiling(normal, repeatX, repeatY, rotationDeg);
+    if (roughness) applyTiling(roughness, repeatX, repeatY, rotationDeg);
 
     const mat = new THREE.MeshStandardMaterial({
-      map: texture,
-      normalMap: normalMap ?? undefined,
-      roughnessMap: roughnessMap ?? undefined,
+      map,
+      normalMap: normal,
+      roughnessMap: roughness,
       // When a roughness map drives the surface, keep the scalar at 1 so it
       // doesn't double-darken the sampled value; otherwise fall back to the
       // catalog's flat roughness for that ceramic's finish.
@@ -151,9 +157,12 @@ export function useTiledCeramicMaterial({
   // to avoid leaking GPU program resources on repeated selection.
   useEffect(() => {
     return () => {
+      material?.map?.dispose();
+      material?.normalMap?.dispose();
+      material?.roughnessMap?.dispose();
       material?.dispose();
     };
   }, [material]);
 
-  return material;
+  return { material, error };
 }

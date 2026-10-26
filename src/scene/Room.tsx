@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type RefObject } from "react";
 import * as THREE from "three";
 import { CeramicFloor } from "./CeramicFloor";
 import { Door } from "./Door";
@@ -12,19 +12,19 @@ import { DOOR, ROOM, WALL_THICKNESS, WINDOW } from "./roomConfig";
  * box segments — cheap to draw and easy to swap for a different RoomDesign
  * later.
  */
-export function Room() {
+export function Room({ overheadRef }: { overheadRef?: RefObject<THREE.Group | null> }) {
   const wallMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#f0eee8", roughness: 0.87 }),
+    () => new THREE.MeshStandardMaterial({ color: "#f0f0ee", roughness: 0.87 }),
     [],
   );
   const ceilingMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#f8f7f3", roughness: 0.95 }),
+    () => new THREE.MeshStandardMaterial({ color: "#f8f8f6", roughness: 0.95 }),
     [],
   );
   // Shared trim material — used for skirting, crown, and the ceiling reveal
   // so the room only carries one extra "architectural detail" material.
   const trimMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#dedad0", roughness: 0.55 }),
+    () => new THREE.MeshStandardMaterial({ color: "#dededb", roughness: 0.55 }),
     [],
   );
 
@@ -37,58 +37,61 @@ export function Room() {
     <group>
       <CeramicFloor />
 
-      {/* Ceiling */}
-      <mesh position={[0, ROOM.height, 0]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMaterial} receiveShadow>
-        <planeGeometry args={[ROOM.width, ROOM.length]} />
-      </mesh>
-
-      {/* Recessed ceiling panel — a subtle architectural coffer instead of a
-          flat slab, cheap to draw (one extra plane + a thin frame outline). */}
-      <mesh
-        position={[0, ceilingPanelY, 0]}
-        rotation={[Math.PI / 2, 0, 0]}
-        material={ceilingMaterial}
-      >
-        <planeGeometry args={[ROOM.width - ceilingInsetMargin * 2, ROOM.length - ceilingInsetMargin * 2]} />
-      </mesh>
-      {[
-        { w: ROOM.width - ceilingInsetMargin * 2 + 0.04, d: 0.04, x: 0, z: -halfL + ceilingInsetMargin },
-        { w: ROOM.width - ceilingInsetMargin * 2 + 0.04, d: 0.04, x: 0, z: halfL - ceilingInsetMargin },
-      ].map((s, i) => (
-        <mesh key={`cf-z-${i}`} position={[s.x, ceilingPanelY, s.z]} material={trimMaterial}>
-          <boxGeometry args={[s.w, 0.02, s.d]} />
+      <group name="overhead" ref={overheadRef}>
+        {/* Ceiling */}
+        <mesh position={[0, ROOM.height, 0]} rotation={[Math.PI / 2, 0, 0]} material={ceilingMaterial} receiveShadow>
+          <planeGeometry args={[ROOM.width, ROOM.length]} />
         </mesh>
-      ))}
-      {[
-        { d: ROOM.length - ceilingInsetMargin * 2 + 0.04, w: 0.04, x: -halfW + ceilingInsetMargin, z: 0 },
-        { d: ROOM.length - ceilingInsetMargin * 2 + 0.04, w: 0.04, x: halfW - ceilingInsetMargin, z: 0 },
-      ].map((s, i) => (
-        <mesh key={`cf-x-${i}`} position={[s.x, ceilingPanelY, s.z]} material={trimMaterial}>
-          <boxGeometry args={[s.w, 0.02, s.d]} />
-        </mesh>
-      ))}
 
-      {/* Crown trim along the wall/ceiling junction. */}
-      <mesh position={[0, ROOM.height - 0.05, -halfL + WALL_THICKNESS / 2 + 0.005]} material={trimMaterial}>
-        <boxGeometry args={[ROOM.width - 0.02, 0.07, 0.03]} />
-      </mesh>
-      <mesh position={[0, ROOM.height - 0.05, halfL - WALL_THICKNESS / 2 - 0.005]} material={trimMaterial}>
-        <boxGeometry args={[ROOM.width - 0.02, 0.07, 0.03]} />
-      </mesh>
-      <mesh
-        position={[-halfW + WALL_THICKNESS / 2 + 0.005, ROOM.height - 0.05, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        material={trimMaterial}
-      >
-        <boxGeometry args={[ROOM.length - 0.02, 0.07, 0.03]} />
-      </mesh>
-      <mesh
-        position={[halfW - WALL_THICKNESS / 2 - 0.005, ROOM.height - 0.05, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        material={trimMaterial}
-      >
-        <boxGeometry args={[ROOM.length - 0.02, 0.07, 0.03]} />
-      </mesh>
+        {/* Recessed ceiling panel — a subtle architectural coffer instead of a
+            flat slab, cheap to draw (one extra plane + a thin frame outline). */}
+        <mesh
+          position={[0, ceilingPanelY, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
+          material={ceilingMaterial}
+        >
+          <planeGeometry args={[ROOM.width - ceilingInsetMargin * 2, ROOM.length - ceilingInsetMargin * 2]} />
+        </mesh>
+        {[
+          { w: ROOM.width - ceilingInsetMargin * 2 + 0.04, d: 0.04, x: 0, z: -halfL + ceilingInsetMargin },
+          { w: ROOM.width - ceilingInsetMargin * 2 + 0.04, d: 0.04, x: 0, z: halfL - ceilingInsetMargin },
+        ].map((s, i) => (
+          <mesh key={`cf-z-${i}`} position={[s.x, ceilingPanelY, s.z]} material={trimMaterial}>
+            <boxGeometry args={[s.w, 0.02, s.d]} />
+          </mesh>
+        ))}
+        {[
+          { d: ROOM.length - ceilingInsetMargin * 2 + 0.04, w: 0.04, x: -halfW + ceilingInsetMargin, z: 0 },
+          { d: ROOM.length - ceilingInsetMargin * 2 + 0.04, w: 0.04, x: halfW - ceilingInsetMargin, z: 0 },
+        ].map((s, i) => (
+          <mesh key={`cf-x-${i}`} position={[s.x, ceilingPanelY, s.z]} material={trimMaterial}>
+            <boxGeometry args={[s.w, 0.02, s.d]} />
+          </mesh>
+        ))}
+
+        {/* Crown trim along the wall/ceiling junction. */}
+        <mesh position={[0, ROOM.height - 0.05, -halfL + WALL_THICKNESS / 2 + 0.005]} material={trimMaterial}>
+          <boxGeometry args={[ROOM.width - 0.02, 0.07, 0.03]} />
+        </mesh>
+        <mesh position={[0, ROOM.height - 0.05, halfL - WALL_THICKNESS / 2 - 0.005]} material={trimMaterial}>
+          <boxGeometry args={[ROOM.width - 0.02, 0.07, 0.03]} />
+        </mesh>
+        <mesh
+          position={[-halfW + WALL_THICKNESS / 2 + 0.005, ROOM.height - 0.05, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          material={trimMaterial}
+        >
+          <boxGeometry args={[ROOM.length - 0.02, 0.07, 0.03]} />
+        </mesh>
+        <mesh
+          position={[halfW - WALL_THICKNESS / 2 - 0.005, ROOM.height - 0.05, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          material={trimMaterial}
+        >
+          <boxGeometry args={[ROOM.length - 0.02, 0.07, 0.03]} />
+        </mesh>
+
+      </group>
 
       {/* Back wall (-Z) */}
       <Wall

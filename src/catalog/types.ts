@@ -16,9 +16,12 @@ export type MaterialCategory =
 export type ProceduralStyle = "marble" | "travertine" | "darkstone";
 
 /** Customer-facing finish label, shown in the catalog and info panels. */
-export type MaterialFinish = "polished" | "matte" | "satin";
+export type MaterialFinish = "polished" | "matte" | "satin" | "honed";
 
 export interface MaterialProduct {
+  source?: "demo" | "upload";
+  /** Uploaded metadata stays canonical mm; legacy demo display sizes stay cm. */
+  physicalSizeMm?: { width: number; height: number };
   id: string;
   name: string;
   code: string;

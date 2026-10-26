@@ -10,8 +10,8 @@ import type { RoomDesign } from "../catalog/types";
 export const ROOM: RoomDesign = {
   id: "living-room-01",
   name: "Modern Living Room",
-  width: 4, // meters, X axis
-  length: 5, // meters, Z axis
+  width: 6, // meters, X axis
+  length: 7, // meters, Z axis
   height: 3, // meters, Y axis
 };
 

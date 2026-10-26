@@ -9,8 +9,9 @@ const HINT_FADE_MS = 6000;
 
 export function Hud() {
   const resetCamera = useConfiguratorStore((s) => s.resetCamera);
-  const floorViewActive = useConfiguratorStore((s) => s.floorViewActive);
-  const toggleFloorView = useConfiguratorStore((s) => s.toggleFloorView);
+  const cameraView = useConfiguratorStore((s) => s.cameraView);
+  const setCameraView = useConfiguratorStore((s) => s.setCameraView);
+  const returnToRoom = useConfiguratorStore((s) => s.returnToRoom);
   const vrSupport = useVRSupported();
 
   const [vrError, setVrError] = useState<string | null>(null);
@@ -55,12 +56,19 @@ export function Hud() {
           <span className="brand-subtitle">{BRAND.subtitle}</span>
         </div>
         <div className="hud-actions">
-          <button className="hud-button" onClick={() => resetCamera()}>
-            Reset Camera
-          </button>
-          <button className={`hud-button${floorViewActive ? " active" : ""}`} onClick={() => toggleFloorView()}>
-            {floorViewActive ? "Back to Room" : "View Floor"}
-          </button>
+          <div className="view-controls" role="group" aria-label="Camera views">
+            {([['room', 'Overview'], ['floor', 'Floor'], ['top', 'Top'], ['detail', 'Detail']] as const).map(([view, label]) => (
+              <button key={view} className={`hud-button${cameraView === view ? " active" : ""}`}
+                aria-pressed={cameraView === view} onClick={() => setCameraView(view)}
+                title={view === "top" ? "Top inspection view" : view === "floor" ? "View Floor" : `${label} view`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {["floor", "top", "detail"].includes(cameraView) && (
+            <button className="hud-button" onClick={returnToRoom}>Back to Room</button>
+          )}
+          <button className="hud-button" onClick={resetCamera} title="Reset to Overview">Reset</button>
           {vrSupport === "supported" && (
             <button className="hud-button hud-button-primary" onClick={handleEnterVR}>
               Enter VR
@@ -79,7 +87,7 @@ export function Hud() {
       {vrError && <div className="vr-error-toast">{vrError}</div>}
 
       <div className={`hud-hint${hintFaded ? " faded" : ""}`}>
-        Drag to look around · WASD to walk · Scroll to zoom
+        {cameraView === "top" ? "Top inspection · Choose a view to return" : "Drag to look around · WASD to walk in Room · Scroll to zoom"}
       </div>
     </div>
   );

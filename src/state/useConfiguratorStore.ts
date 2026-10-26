@@ -1,7 +1,14 @@
 import { create } from "zustand";
+import type { MaterialProduct } from "../catalog/types";
 import { FLOOR_CERAMICS } from "../catalog/materials";
 
+export type DesktopView = "room" | "floor" | "top" | "detail" | "free";
+
 interface ConfiguratorState {
+  uploadedProducts: MaterialProduct[];
+  setUploadedProducts: (products: MaterialProduct[]) => void;
+  floorImageError: string | null;
+  setFloorImageError: (error: string | null) => void;
   selectedFloorId: string;
   /** The ceramic that was selected right before the current one — powers Compare. */
   previousFloorId: string | null;
@@ -11,13 +18,14 @@ interface ConfiguratorState {
   compareActive: boolean;
   toggleCompare: () => void;
 
-  /** Incremented to signal desktop controls to reset the camera. */
-  cameraResetToken: number;
+  /** Requests are separate from mode so manual movement cannot restart a tween. */
+  cameraView: DesktopView;
+  cameraRequestToken: number;
+  cameraRequestKind: "preset" | "return";
+  lastRoomView: "room" | "free";
+  setCameraView: (view: Exclude<DesktopView, "free">) => void;
+  returnToRoom: () => void;
   resetCamera: () => void;
-
-  /** True while the desktop camera is tweened into the floor-inspection pose. */
-  floorViewActive: boolean;
-  toggleFloorView: () => void;
 
   /** Incremented to signal VRLocomotion to move the player rig back to the spawn point. */
   vrReturnToStartToken: number;
@@ -33,6 +41,18 @@ interface ConfiguratorState {
 }
 
 export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
+  uploadedProducts: [],
+  setUploadedProducts: (products) => set((s) => {
+    const exists = (id: string | null) => id && [...FLOOR_CERAMICS, ...products].some(p => p.id === id);
+    return {
+      uploadedProducts: products,
+      selectedFloorId: exists(s.selectedFloorId) ? s.selectedFloorId : FLOOR_CERAMICS[0].id,
+      previousFloorId: exists(s.previousFloorId) ? s.previousFloorId : null,
+      compareActive: exists(s.previousFloorId) ? s.compareActive : false,
+    };
+  }),
+  floorImageError: null,
+  setFloorImageError: (error) => set({ floorImageError: error }),
   selectedFloorId: FLOOR_CERAMICS[0].id,
   previousFloorId: null,
   setSelectedFloorId: (id) => {
@@ -45,11 +65,26 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   toggleCompare: () =>
     set((s) => (s.previousFloorId ? { compareActive: !s.compareActive } : s)),
 
-  cameraResetToken: 0,
-  resetCamera: () => set((s) => ({ cameraResetToken: s.cameraResetToken + 1 })),
-
-  floorViewActive: false,
-  toggleFloorView: () => set((s) => ({ floorViewActive: !s.floorViewActive })),
+  cameraView: "room",
+  cameraRequestToken: 0,
+  cameraRequestKind: "preset",
+  lastRoomView: "room",
+  setCameraView: (view) => set((s) => ({
+    cameraView: view,
+    cameraRequestKind: "preset",
+    cameraRequestToken: s.cameraRequestToken + 1,
+  })),
+  returnToRoom: () => set((s) => ({
+    cameraView: s.lastRoomView,
+    cameraRequestKind: "return",
+    cameraRequestToken: s.cameraRequestToken + 1,
+  })),
+  resetCamera: () => set((s) => ({
+    cameraView: "room",
+    lastRoomView: "room",
+    cameraRequestKind: "preset",
+    cameraRequestToken: s.cameraRequestToken + 1,
+  })),
 
   vrReturnToStartToken: 0,
   triggerVrReturnToStart: () => set((s) => ({ vrReturnToStartToken: s.vrReturnToStartToken + 1 })),
