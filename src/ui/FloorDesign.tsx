@@ -1,3 +1,5 @@
+import { PhysicalSizeEditor } from './PhysicalSizeEditor';
+import { effectiveProduct, type PhysicalSize } from '../tiles/physicalSize';
 import { MatchingSize } from './MatchingSize';
 import { ImageQuality } from './ImageQuality';
 import { useEffect, useState } from "react";
@@ -9,14 +11,14 @@ import { useConfiguratorStore } from "../state/useConfiguratorStore";
 import { LayoutPlan } from "./LayoutPlan";
 import type { ZoneId, LayoutPattern, FloorInstallation, Orientation } from "../layout/model";
 import { modularSizes } from "../layout/modules";
-function AssetPicker({zone,value,onChange,label}:{zone:ZoneId;value:string;label?:string;onChange:(id:string)=>void}) {
+function AssetPicker({zone,value,onChange,label,override,onSizeChange}:{zone:ZoneId;value:string;label?:string;onChange:(id:string)=>void;override?:PhysicalSize;onSizeChange:(size:PhysicalSize|undefined)=>void}) {
   const {products}=useFloorDesign();
   const chosen=products.find(p=>p.id===value);
-  const size=chosen?layoutAsset(chosen):null;
-  return <label>{label??(zone==='field'?'Main field tile':zone==='centerFrame'?'Center Frame tile':'Center tile')}<select aria-label={label??`${zone==='centerFrame'?'Center Frame':zone==='field'?'Main Field':'Center'} tile`} value={value} onChange={e=>onChange(e.target.value)}>
+  const effective=chosen?effectiveProduct(chosen,override):undefined;const size=effective?layoutAsset(effective):null;
+  return <><label>{label??(zone==='field'?'Main field tile':zone==='centerFrame'?'Center Frame tile':'Center tile')}<select aria-label={label??`${zone==='centerFrame'?'Center Frame':zone==='field'?'Main Field':'Center'} tile`} value={value} onChange={e=>onChange(e.target.value)}>
     {!products.some(p=>p.id===value)&&<option value={value}>Unavailable asset · open My Tiles</option>}
     {products.map(p=>{const a=layoutAsset(p);return <option key={p.id} value={p.id}>{p.name} · {a.widthMm} × {a.heightMm} mm · {p.productKind==='slab'?'Slab':'Tile'}{p.source==='upload'?' · My Tiles':''}</option>;})}
-  </select>{size&&<small className="design-asset-size">{size.widthMm} × {size.heightMm} mm {chosen?.productKind==='slab'?'slab':'tile'} body</small>}<ImageQuality product={chosen}/></label>;
+  </select>{size&&<small className="design-asset-size">{size.widthMm} × {size.heightMm} mm {chosen?.productKind==='slab'?'slab':'tile'} body</small>}<ImageQuality product={effective}/></label>{chosen&&<PhysicalSizeEditor key={chosen.id} product={chosen} override={override} draft label={`${label??(zone==='field'?'Main Field':zone==='centerFrame'?'Center Frame':'Center')} size`} onChange={onSizeChange} onSaved={id=>onChange(id)}/>}</>;
 }
 function Length({label,value,onChange,min=0,step=1}:{label:string;value:number;onChange:(n:number)=>void;min?:number;step?:number}) {
   return <label>{label}<input aria-label={label} type="number" min={min} step={step} value={Number.isFinite(value)?value:''} onChange={e=>onChange(e.target.value===''?NaN:Number(e.target.value))}/></label>;
@@ -24,18 +26,18 @@ function Length({label,value,onChange,min=0,step=1}:{label:string;value:number;o
 function ModularControls({field,joint,onChange}:{field:FloorInstallation['field'];joint:number;onChange:(field:FloorInstallation['field'])=>void}) {
   const {products}=useFloorDesign();
   const a=products.find(p=>p.id===field.tileAssetId);
-  const {largeMm:l,smallMm:s,pitchMm:p}=modularSizes(a?layoutAsset(a).widthMm:NaN,joint);
+  const {largeMm:l,smallMm:s,pitchMm:p}=modularSizes(a?layoutAsset(effectiveProduct(a,field.physicalOverride)).widthMm:NaN,joint);
   const m=field.modular!;
   return <>
     <label>Preset<select aria-label="Modular preset" value={m.preset} onChange={()=>{}}><option value="multi-size">Multi-Size Modular</option></select></label>
     {(['A','B','C','D'] as const).filter(slot=>slot!=='D'||m.d).map(slot=>{
       const key=slot.toLowerCase() as 'b'|'c'|'d';
-      const selection=slot==='A'?{tileAssetId:field.tileAssetId,orientation:field.orientation}:m[key]!;
-      const change=(tileAssetId:string,orientation:Orientation)=>onChange(slot==='A'?{...field,tileAssetId,orientation}:{...field,modular:{...m,[key]:{tileAssetId,orientation}}});
+      const selection=slot==='A'?{tileAssetId:field.tileAssetId,orientation:field.orientation,physicalOverride:field.physicalOverride}:m[key]!;
+      const change=(tileAssetId:string,orientation:Orientation,...sizes:[PhysicalSize|undefined]|[])=>{const physicalOverride=sizes.length?sizes[0]:tileAssetId===selection.tileAssetId?selection.physicalOverride:undefined;onChange(slot==='A'?{...field,tileAssetId,orientation,physicalOverride}:{...field,modular:{...m,[key]:{tileAssetId,orientation,physicalOverride}}});};
       return <div key={slot}>
-        <AssetPicker zone="field" label={`Modular Tile ${slot}`} value={selection.tileAssetId} onChange={id=>change(id,selection.orientation)}/>
+        <AssetPicker zone="field" label={`Modular Tile ${slot}`} value={selection.tileAssetId} override={selection.physicalOverride} onSizeChange={size=>change(selection.tileAssetId,selection.orientation,size)} onChange={id=>change(id,selection.orientation)}/>
         <small className="design-asset-size">Expected {slot==='A'?l:s} × {slot==='A'||slot==='B'?l:s} mm after orientation</small>
-        {(()=>{const product=products.find(p=>p.id===selection.tileAssetId),size=product?layoutAsset(product):null,w=slot==='A'?l:s,h=slot==='A'||slot==='B'?l:s;return size&&((selection.orientation===90?size.heightMm:size.widthMm)!==w||(selection.orientation===90?size.widthMm:size.heightMm)!==h)?<MatchingSize product={product} widthMm={selection.orientation===90?h:w} heightMm={selection.orientation===90?w:h} onCreated={id=>change(id,selection.orientation)}/>:null;})()}
+        {(()=>{const product=products.find(p=>p.id===selection.tileAssetId),size=product?layoutAsset(effectiveProduct(product,selection.physicalOverride)):null,w=slot==='A'?l:s,h=slot==='A'||slot==='B'?l:s;return size&&((selection.orientation===90?size.heightMm:size.widthMm)!==w||(selection.orientation===90?size.widthMm:size.heightMm)!==h)?<MatchingSize product={product} widthMm={selection.orientation===90?h:w} heightMm={selection.orientation===90?w:h} onUse={()=>change(selection.tileAssetId,selection.orientation,{widthMm:selection.orientation===90?h:w,heightMm:selection.orientation===90?w:h})} onCreated={id=>change(id,selection.orientation)}/>:null;})()}
         <label>Tile {slot} orientation<select aria-label={`Tile ${slot} orientation`} value={selection.orientation} onChange={e=>change(selection.tileAssetId,Number(e.target.value) as Orientation)}><option value={0}>0°</option><option value={90}>90°</option></select></label>
       </div>;
     })}
@@ -57,7 +59,7 @@ function DraftControls() {
   const dirty=JSON.stringify(configuration)!==JSON.stringify({roomSize:s.roomSize,installation:s.installation});
   const i=draft.installation;
   const a=products.find(p=>p.id===i.field.tileAssetId),b=products.find(p=>p.id===i.field.secondaryTileAssetId);
-  const aSize=a?layoutAsset(a):null,bSize=b?layoutAsset(b):null;
+  const aSize=a?layoutAsset(effectiveProduct(a,i.field.physicalOverride)):null,bSize=b?layoutAsset(effectiveProduct(b,i.field.secondaryPhysicalOverride)):null;
   const checkerMismatch=!!aSize&&!!bSize&&(aSize.widthMm!==bSize.widthMm||aSize.heightMm!==bSize.heightMm);
   return <div className="design-draft"><div className="design-fields">
       <fieldset><legend>Room</legend>
@@ -69,7 +71,7 @@ function DraftControls() {
         <label>Pattern<select aria-label="Pattern" value={i.field.pattern} onChange={e=>update(v=>{
           const pattern=e.target.value as LayoutPattern;
           const a=products.find(p=>p.id===v.field.tileAssetId);
-          const size=a?layoutAsset(a):null;
+          const size=a?layoutAsset(effectiveProduct(a,v.field.physicalOverride)):null;
           const compatible=products.find(p=>p.id!==a?.id&&size&&layoutAsset(p).widthMm===size.widthMm&&layoutAsset(p).heightMm===size.heightMm);
           const secondaryTileAssetId=v.field.secondaryTileAssetId??compatible?.id??products.find(p=>p.id!==a?.id)?.id??v.field.tileAssetId;
           const expected=modularSizes(size?.widthMm??600,v.jointWidthMm);
@@ -77,21 +79,21 @@ function DraftControls() {
           return {...v,field:{...v.field,pattern,...(pattern==='checker'?{secondaryTileAssetId}:{}),...(pattern==='modular'?{modular:v.field.modular??{preset:'multi-size' as const,b:choose(expected.smallMm,expected.largeMm),c:choose(expected.smallMm,expected.smallMm)}}:{})}};
         })}><option value="straight">Straight / Grid</option><option value="running-bond-50">Running Bond 50%</option><option value="running-bond-33">Running Bond 33%</option><option value="checker">Checker</option><option value="modular">Multi-Size Modular</option></select></label>
         {i.field.pattern==='modular'?<ModularControls field={i.field} joint={i.jointWidthMm} onChange={field=>update(v=>({...v,field}))}/>:<>
-        <AssetPicker zone="field" label={i.field.pattern==='checker'?'Field Tile A':undefined} value={i.field.tileAssetId} onChange={id=>update(v=>({...v,field:{...v.field,tileAssetId:id}}))}/>
-        {i.field.pattern==='checker'&&<><AssetPicker zone="field" label="Field Tile B" value={i.field.secondaryTileAssetId??''} onChange={id=>update(v=>({...v,field:{...v.field,secondaryTileAssetId:id}}))}/>{checkerMismatch&&<><p className="design-error">Tile B does not match Tile A physical size.</p><MatchingSize product={b} widthMm={aSize!.widthMm} heightMm={aSize!.heightMm} onCreated={id=>update(v=>({...v,field:{...v.field,secondaryTileAssetId:id}}))}/></>}<p className="design-hint">Tile A and B must have equal physical body dimensions after orientation. Both use the field orientation.</p></>}
+        <AssetPicker zone="field" label={i.field.pattern==='checker'?'Field Tile A':undefined} value={i.field.tileAssetId} override={i.field.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,field:{...v.field,physicalOverride}}))} onChange={id=>update(v=>({...v,field:{...v.field,tileAssetId:id,physicalOverride:undefined}}))}/>
+        {i.field.pattern==='checker'&&<><AssetPicker zone="field" label="Field Tile B" value={i.field.secondaryTileAssetId??''} override={i.field.secondaryPhysicalOverride} onSizeChange={secondaryPhysicalOverride=>update(v=>({...v,field:{...v.field,secondaryPhysicalOverride}}))} onChange={id=>update(v=>({...v,field:{...v.field,secondaryTileAssetId:id,secondaryPhysicalOverride:undefined}}))}/>{checkerMismatch&&<><p className="design-error">Tile B does not match Tile A physical size.</p><MatchingSize product={b} widthMm={aSize!.widthMm} heightMm={aSize!.heightMm} onUse={()=>update(v=>({...v,field:{...v.field,secondaryPhysicalOverride:{widthMm:aSize!.widthMm,heightMm:aSize!.heightMm}}}))} onCreated={id=>update(v=>({...v,field:{...v.field,secondaryTileAssetId:id,secondaryPhysicalOverride:undefined}}))}/></>}<p className="design-hint">Tile A and B must have equal physical body dimensions after orientation. Both use the field orientation.</p></>}
         <label>Field orientation<select aria-label="Field orientation" value={i.field.orientation} onChange={e=>update(v=>({...v,field:{...v.field,orientation:Number(e.target.value) as 0|90}}))}><option value={0}>0°</option><option value={90}>90°</option></select></label><p className="design-hint">Physical tile body + one full joint; pattern applies only to Main Field</p>
         </>}
       </fieldset>
       <fieldset><legend>Center Frame</legend><label className="design-toggle"><input type="checkbox" checked={i.centerFrame.enabled} onChange={e=>update(v=>({...v,centerFrame:{...v.centerFrame,enabled:e.target.checked}}))}/>Enable Center Frame</label>
-        {i.centerFrame.enabled&&<><AssetPicker zone="centerFrame" value={i.centerFrame.tileAssetId} onChange={id=>update(v=>({...v,centerFrame:{...v.centerFrame,tileAssetId:id}}))}/><Length label="Center Frame width (mm)" value={i.centerFrame.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,centerFrame:{...v.centerFrame,widthMm}}))}/><p className="design-hint">A tiled frame around the center area, not the room perimeter. Long edge follows each side; butt corners. Width includes the inner joint.</p></>}
+        {i.centerFrame.enabled&&<><AssetPicker zone="centerFrame" value={i.centerFrame.tileAssetId} override={i.centerFrame.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,centerFrame:{...v.centerFrame,physicalOverride}}))} onChange={id=>update(v=>({...v,centerFrame:{...v.centerFrame,tileAssetId:id,physicalOverride:undefined}}))}/><Length label="Center Frame width (mm)" value={i.centerFrame.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,centerFrame:{...v.centerFrame,widthMm}}))}/><p className="design-hint">A tiled frame around the center area, not the room perimeter. Long edge follows each side; butt corners. Width includes the inner joint.</p></>}
       </fieldset>
       <fieldset><legend>Center</legend><label className="design-toggle"><input type="checkbox" checked={i.center.enabled} onChange={e=>update(v=>({...v,center:{...v.center,enabled:e.target.checked}}))}/>Enable center</label>
-        {i.center.enabled&&<><AssetPicker zone="center" value={i.center.tileAssetId} onChange={id=>update(v=>({...v,center:{...v.center,tileAssetId:id}}))}/><Length label="Center width (mm)" value={i.center.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,center:{...v.center,widthMm}}))}/><Length label="Center height (mm)" value={i.center.heightMm} min={.001} onChange={heightMm=>update(v=>({...v,center:{...v.center,heightMm}}))}/><label>Center orientation<select aria-label="Center orientation" value={i.center.orientation} onChange={e=>update(v=>({...v,center:{...v.center,orientation:Number(e.target.value) as 0|90}}))}><option value={0}>0°</option><option value={90}>90°</option></select></label><p className="design-hint">Centered in the room. Area size is separate from tile body size. With Center off, Main Field fills the frame opening.</p></>}
+        {i.center.enabled&&<><AssetPicker zone="center" value={i.center.tileAssetId} override={i.center.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,center:{...v.center,physicalOverride}}))} onChange={id=>update(v=>({...v,center:{...v.center,tileAssetId:id,physicalOverride:undefined}}))}/><Length label="Center width (mm)" value={i.center.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,center:{...v.center,widthMm}}))}/><Length label="Center height (mm)" value={i.center.heightMm} min={.001} onChange={heightMm=>update(v=>({...v,center:{...v.center,heightMm}}))}/><label>Center orientation<select aria-label="Center orientation" value={i.center.orientation} onChange={e=>update(v=>({...v,center:{...v.center,orientation:Number(e.target.value) as 0|90}}))}><option value={0}>0°</option><option value={90}>90°</option></select></label><p className="design-hint">Centered in the room. Area size is separate from tile body size. With Center off, Main Field fills the frame opening.</p></>}
       </fieldset>
       <fieldset><legend>Joint</legend><Length label="Full joint width (mm)" value={i.jointWidthMm} step={.1} onChange={jointWidthMm=>update(v=>({...v,jointWidthMm}))}/></fieldset>
       {!result.ok&&<div className="design-error" role="alert">Applied design: {result.errors.join(" ")}</div>}
       {result.ok&&<div className="design-summary"><strong>Applied design · visible pieces</strong>{(['field','centerFrame','center'] as const).map(zone=><span key={zone}>{zone==='centerFrame'?'Center Frame':zone[0].toUpperCase()+zone.slice(1)}: {result.layout.placements.filter(p=>p.zoneId===zone).length}</span>)}<small>Includes cut pieces; not purchasing quantities.</small></div>}
-      <p className="design-hint">Load saved assets through My Tiles in Room. Closing Floor Design discards unapplied edits. Designs reset on refresh.</p>
+      <p className="design-hint">Load saved assets through My Tiles in Room. Closing Floor Design discards unapplied edits. Save Project to keep applied designs and project sizes.</p>
       </div><footer className="design-action-footer">
       {errors.length>0&&<div className="design-error" role="alert">{errors.map(message=><p key={message}>{message}</p>)}</div>}
 

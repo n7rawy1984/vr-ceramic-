@@ -40,13 +40,13 @@ export function createProjectRepository(storage:ProjectStorage,runtime:ProjectRu
   }
   async function save(name?:string){return perform(async()=>{
     const active=store.getState().active,state=normalizeAppliedState(runtime.capture()),now=stamp(active?.updatedAt);
-    const record:ProjectDocument={schemaVersion:4,id:active?.id??crypto.randomUUID(),name:projectName(name??active?.name),createdAt:active?.createdAt??now,updatedAt:now,projectDocument:state,assetNames:runtime.names(state)};
+    const record:ProjectDocument={schemaVersion:5,id:active?.id??crypto.randomUUID(),name:projectName(name??active?.name),createdAt:active?.createdAt??now,updatedAt:now,projectDocument:state,assetNames:runtime.names(state)};
     await storage.write(record,true);baseline=stateFingerprint(state);updateRow(record);store.setState({active:record,notice:'Project saved',warnings:[]});changed();return record;
   });}
   async function open(id:string,discard=false){return perform(async()=>{guard(discard);const raw=await storage.read(id);if(!raw)throw Error('This project is no longer saved on this device.');const record=normalizeProjectDocument(raw);await restore(record,true);updateRow(record);store.setState({open:false});});}
   async function create(name:string,discard=false){return perform(async()=>{
     guard(discard);const state=defaultProjectState(),prepared=await runtime.prepare(state,{}),now=stamp();
-    const record:ProjectDocument={schemaVersion:4,id:crypto.randomUUID(),name:projectName(name),createdAt:now,updatedAt:now,projectDocument:state,assetNames:runtime.names(state)};
+    const record:ProjectDocument={schemaVersion:5,id:crypto.randomUUID(),name:projectName(name),createdAt:now,updatedAt:now,projectDocument:state,assetNames:runtime.names(state)};
     await storage.write(record,true);updateRow(record);publish(record,prepared,state);store.setState({open:false,notice:'Project created'});return record;
   });}
   async function rename(id:string,name:string){return perform(async()=>{const record=normalizeProjectDocument(await storage.read(id));const next={...record,name:projectName(name),updatedAt:stamp(record.updatedAt)};await storage.write(next,false);updateRow(next);if(store.getState().active?.id===id)store.setState({active:next});return next;});}

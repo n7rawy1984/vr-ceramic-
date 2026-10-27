@@ -1,3 +1,4 @@
+import { effectiveSize } from '../tiles/physicalSize.ts';
 import type { FloorInstallation, LayoutAsset, Orientation, RectMm } from './model.ts';
 
 export type ModuleTile = RectMm & { slot: string; tileAssetId: string; rotationDeg: Orientation };
@@ -13,14 +14,14 @@ export function multiSizeModule(field: FloorInstallation['field'], joint: number
   const errors:string[]=[];
   const config=field.modular;
   if(!config||config.preset!=='multi-size')return {errors:['Choose the Multi-Size Modular preset and Tile B / Tile C.']};
-  const a=assets.get(field.tileAssetId);
+  const original=assets.get(field.tileAssetId),a=original?effectiveSize(original,field.physicalOverride):undefined;
   if(!a)return {errors:['Modular Tile A is unavailable. Choose another tile.']};
   const {largeMm:l,smallMm:s,pitchMm:p}=modularSizes(a.widthMm,joint);
   if(!Number.isFinite(joint)||joint<0||joint>100||!Number.isFinite(s)||s<.001||l>100000)return {errors:['Modular Tile A must leave a positive small tile after subtracting one full joint.']};
-  const expected=[['A',{tileAssetId:field.tileAssetId,orientation:field.orientation},l,l],['B',config.b,s,l],['C',config.c,s,s],...(config.d?[['D',config.d,s,s] as const]:[])] as const;
+  const expected=[['A',{tileAssetId:field.tileAssetId,orientation:field.orientation,physicalOverride:field.physicalOverride},l,l],['B',config.b,s,l],['C',config.c,s,s],...(config.d?[['D',config.d,s,s] as const]:[])] as const;
   const oriented=new Map<string,{id:string;w:number;h:number;rotation:Orientation}>();
   for(const [slot,selection,w,h] of expected){
-    const asset=selection&&assets.get(selection.tileAssetId);
+    const original=selection&&assets.get(selection.tileAssetId),asset=original?effectiveSize(original,selection.physicalOverride):undefined;
     if(!asset){errors.push(`Modular Tile ${slot} is unavailable. Choose a tile from the library.`);continue;}
     if(![0,90].includes(selection.orientation)){errors.push(`Modular Tile ${slot} orientation must be 0° or 90°.`);continue;}
     const width=selection.orientation===90?asset.heightMm:asset.widthMm,height=selection.orientation===90?asset.widthMm:asset.heightMm;

@@ -1,3 +1,5 @@
+import { PhysicalSizeEditor } from './PhysicalSizeEditor';
+import { effectiveProduct } from '../tiles/physicalSize';
 import { ImageQuality } from './ImageQuality';
 import { useState } from "react";
 import { FLOOR_CERAMICS, getProductById } from "../catalog/materials";
@@ -38,7 +40,8 @@ export function CeramicCatalog() {
   const previous = previousFloorId ? getProductById(previousFloorId, products) : undefined;
   // Whichever product is actually on the floor right now — the previous one
   // while Compare is active, otherwise the real selection.
-  const displayed = compareActive && previous ? previous : selected;
+  const sizeOverride=useConfiguratorStore(s=>s.compareActive&&s.previousFloorId?s.previousPhysicalOverride:s.physicalOverride);
+  const displayed = effectiveProduct(compareActive && previous ? previous : selected,sizeOverride);
 
   if (!isOpen) {
     return (
@@ -92,6 +95,7 @@ export function CeramicCatalog() {
       )}
 
       {designEnabled&&<div className="catalog-design-note">Floor Design is active. Set its tiles in the design panel. <button className="hud-button" onClick={()=>{simpleMaterial(false);useConfiguratorStore.setState({compareActive:false});}}>Simple material / Compare</button></div>}
+      {!designEnabled&&!compareActive&&<PhysicalSizeEditor key={selected.id} product={selected} override={sizeOverride} onChange={physicalOverride=>useConfiguratorStore.setState({physicalOverride})} onSaved={id=>useConfiguratorStore.getState().setSelectedFloorId(id)}/> }
       <button className="hud-button tile-library-button" onClick={() => setLibraryOpen(true)}>My Tiles · Add Tile</button>
       <div className="catalog-cards">
         {products.map((product) => {

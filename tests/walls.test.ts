@@ -34,7 +34,7 @@ test('invalid joints, orientations, unavailable assets, malformed openings and e
 test('v1 migration preserves all floor semantics and supplies neutral walls; v2 requires valid complete wall data',()=>{
   const s=defaultProjectState();s.floorDesign.enabled=true;s.floorDesign.started=true;s.floorDesign.installation.field.pattern='running-bond-33';const {walls:_removed,...legacy}=s;
   const record={schemaVersion:1,id:'old',name:'M5',createdAt:'2026-10-27',updatedAt:'2026-10-27',projectDocument:legacy};
-  const migrated=normalizeProjectDocument(record);assert.equal(migrated.schemaVersion,4);assert.deepEqual(migrated.projectDocument.walls,defaultWalls());assert.deepEqual(migrated.projectDocument.floorDesign,s.floorDesign);assert.throws(()=>normalizeProjectDocument({...record,schemaVersion:2}));assert.throws(()=>normalizeAppliedState({...s,walls:{}}));assert.throws(()=>normalizeAppliedState({...s,walls:{...s.walls,right:{...s.walls.right,orientation:45}}}));
+  const migrated=normalizeProjectDocument(record);assert.equal(migrated.schemaVersion,5);assert.deepEqual(migrated.projectDocument.walls,defaultWalls());assert.deepEqual(migrated.projectDocument.floorDesign,s.floorDesign);assert.throws(()=>normalizeProjectDocument({...record,schemaVersion:2}));assert.throws(()=>normalizeAppliedState({...s,walls:{}}));assert.throws(()=>normalizeAppliedState({...s,walls:{...s.walls,right:{...s.walls.right,orientation:45}}}));
 });
 test('independent wall states persist, reference shared assets, restore immediately and missing wall assets affect only that wall',()=>{
   const s=defaultProjectState();s.walls.right={enabled:true,tileAssetId:'upload',orientation:90,jointWidthMm:2};s.walls.back={enabled:true,tileAssetId:'ceramic-03',orientation:0,jointWidthMm:4};

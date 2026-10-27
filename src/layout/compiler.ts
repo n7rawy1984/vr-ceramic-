@@ -1,3 +1,4 @@
+import { effectiveSize, validPhysicalSize } from '../tiles/physicalSize.ts';
 import { LAYOUT_PATTERNS } from "./model.ts";
 import { multiSizeModule, repeatModule } from "./modules.ts";
 import { fieldRowOffset, checkerAssetId } from "./patterns.ts";
@@ -61,14 +62,17 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
   if (![0, 90].includes(installation.field.orientation) || ![0, 90].includes(installation.center.orientation)) errors.push("Tile orientation must be 0° or 90°.");
   if (installation.centerFrame.orientationRule !== "follow-side" || installation.border.orientationRule !== "follow-side" || installation.center.position !== "center") errors.push("Unsupported border or center positioning rule.");
   const assetMap = new Map(assets.map(a => [a.id, a]));
-  for (const [zone, enabled, id] of [["Field", true, installation.field.tileAssetId], ["Checker Tile B", installation.field.pattern === "checker", installation.field.secondaryTileAssetId], ["Border", installation.border.enabled, installation.border.tileAssetId], ["Center Frame", installation.centerFrame.enabled, installation.centerFrame.tileAssetId], ["Center", installation.center.enabled, installation.center.tileAssetId]] as const) {
+  const resolve=(id:string|undefined,override?:import('../tiles/physicalSize.ts').PhysicalSize)=>{const a=id?assetMap.get(id):undefined;return a?effectiveSize(a,override):undefined;};
+  const assignments=[installation.field,installation.border,installation.centerFrame,installation.center,...(installation.field.pattern==='checker'?[{physicalOverride:installation.field.secondaryPhysicalOverride}]:[]),...(installation.field.pattern==='modular'?Object.values(installation.field.modular??{}).filter(v=>typeof v==='object'):[])];
+  if(assignments.some(a=>a?.physicalOverride!==undefined&&!validPhysicalSize(a.physicalOverride)))errors.push('Physical size must be from 0.001 to 100000 mm, with up to 3 decimal places.');
+  for (const [zone, enabled, id, override] of [["Field", true, installation.field.tileAssetId,installation.field.physicalOverride], ["Checker Tile B", installation.field.pattern === "checker", installation.field.secondaryTileAssetId,installation.field.secondaryPhysicalOverride], ["Border", installation.border.enabled, installation.border.tileAssetId,installation.border.physicalOverride], ["Center Frame", installation.centerFrame.enabled, installation.centerFrame.tileAssetId,installation.centerFrame.physicalOverride], ["Center", installation.center.enabled, installation.center.tileAssetId,installation.center.physicalOverride]] as const) {
     if (!enabled) continue;
-    const a = id ? assetMap.get(id) : undefined;
+    const a = resolve(id,override);
     if (!a) errors.push(`${zone} tile is unavailable. Open My Tiles to load saved assets, or choose another tile.`);
     else if (!positive(a.widthMm) || !positive(a.heightMm)) errors.push(`${zone} tile body dimensions are invalid.`);
   }
   if (installation.field.pattern === "checker") {
-    const a=assetMap.get(installation.field.tileAssetId),b=installation.field.secondaryTileAssetId?assetMap.get(installation.field.secondaryTileAssetId):undefined;
+    const a=resolve(installation.field.tileAssetId,installation.field.physicalOverride),b=resolve(installation.field.secondaryTileAssetId,installation.field.secondaryPhysicalOverride);
     if(a&&b&&(Math.abs(a.widthMm-b.widthMm)>E||Math.abs(a.heightMm-b.heightMm)>E)) errors.push("Checker Field Tile A and Field Tile B must have equal physical body dimensions after orientation. Tiles are never stretched.");
   }
   if(installation.field.pattern!=='straight'){
@@ -115,7 +119,7 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
   };
   const grid = (zoneId: ZoneId, segment: string, bounds: RectMm, regions: RectMm[], id: string, rotationDeg: Orientation, pattern: LayoutPattern = "straight", secondaryId?: string) => {
     if (!regions.length) return;
-    const a = assetMap.get(id)!;
+    const a = resolve(id,installation[zoneId].physicalOverride)!;
     const tw = rotationDeg === 90 ? a.heightMm : a.widthMm;
     const th = rotationDeg === 90 ? a.widthMm : a.heightMm;
     const px = tw + j, py = th + j;
@@ -154,7 +158,7 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
     if (b > 0) {
       const inner = rect(b, b, w - 2 * b, h - 2 * b);
       layout.joints.push(...subtractRect(inner, usable));
-      const a = assetMap.get(installation.border.tileAssetId)!;
+      const a = resolve(installation.border.tileAssetId,installation.border.physicalOverride)!;
       const horizontal: Orientation = a.widthMm >= a.heightMm ? 0 : 90;
       const vertical: Orientation = horizontal === 0 ? 90 : 0;
       const sides: [string, RectMm, RectMm, Orientation][] = [
@@ -171,7 +175,7 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
     }
     if (f.enabled) {
       // Exact outer = center + 2*frame width. Inner seam belongs to the frame.
-      const a = assetMap.get(f.tileAssetId)!;
+      const a = resolve(f.tileAssetId,f.physicalOverride)!;
       const horizontal: Orientation = a.widthMm >= a.heightMm ? 0 : 90;
       const vertical: Orientation = horizontal === 0 ? 90 : 0;
       const o = frameOuter, q = centerWithJoint;

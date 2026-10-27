@@ -42,13 +42,13 @@ export const useFloorDesignStore = create<FloorDesignState>((set) => ({
   architecture: structuredClone(DEFAULT_ARCHITECTURE),
   applyRoom: (roomSize,architecture) => set({roomSize,architecture,selectedPlacementId:null}),
   reconcileAssets: (ids) => set(s => {
-    const walls=Object.fromEntries(Object.entries(s.walls).map(([key,w])=>[key,ids.has(w.tileAssetId)?w:{...w,enabled:false,tileAssetId:FLOOR_CERAMICS[0].id}])) as WallDesigns;
+    const walls=Object.fromEntries(Object.entries(s.walls).map(([key,w])=>[key,ids.has(w.tileAssetId)?w:{...w,physicalOverride:undefined,enabled:false,tileAssetId:FLOOR_CERAMICS[0].id}])) as WallDesigns;
     const wallChanged=Object.keys(walls).some(key=>walls[key as keyof WallDesigns]!==s.walls[key as keyof WallDesigns]);
     const i=s.installation;
     const missingA=!ids.has(i.field.tileAssetId);
     const missingB=!!i.field.secondaryTileAssetId&&!ids.has(i.field.secondaryTileAssetId);
-    let field=missingA?{...i.field,tileAssetId:FLOOR_CERAMICS[0].id}:i.field;
-    if(missingB) { const {secondaryTileAssetId: _removed,...rest}=field; field=rest; }
+    let field=missingA?{...i.field,physicalOverride:undefined,tileAssetId:FLOOR_CERAMICS[0].id}:i.field;
+    if(missingB) { const {secondaryTileAssetId: _removed,...rest}=field; field={...rest,secondaryPhysicalOverride:undefined}; }
     // Without a valid equal-size pair, keep a usable floor rather than a broken Checker.
     if(i.field.pattern==='checker'&&(missingA||missingB||!i.field.secondaryTileAssetId)) field={...field,pattern:'straight'};
     const m=field.modular;
@@ -56,9 +56,9 @@ export const useFloorDesignStore = create<FloorDesignState>((set) => ({
       const {modular: _removed,...rest}=field;field=rest;
     }
     if(i.field.pattern==='modular'&&(missingA||!field.modular))field={...field,pattern:'straight'};
-    const center=ids.has(i.center.tileAssetId)?i.center:{...i.center,tileAssetId:FLOOR_CERAMICS[0].id};
-    const centerFrame=ids.has(i.centerFrame.tileAssetId)?i.centerFrame:{...i.centerFrame,tileAssetId:FLOOR_CERAMICS[2].id};
-    const border=ids.has(i.border.tileAssetId)?i.border:{...i.border,tileAssetId:FLOOR_CERAMICS[2].id};
+    const center=ids.has(i.center.tileAssetId)?i.center:{...i.center,physicalOverride:undefined,tileAssetId:FLOOR_CERAMICS[0].id};
+    const centerFrame=ids.has(i.centerFrame.tileAssetId)?i.centerFrame:{...i.centerFrame,physicalOverride:undefined,tileAssetId:FLOOR_CERAMICS[2].id};
+    const border=ids.has(i.border.tileAssetId)?i.border:{...i.border,physicalOverride:undefined,tileAssetId:FLOOR_CERAMICS[2].id};
     return field===i.field&&center===i.center&&centerFrame===i.centerFrame&&border===i.border? (wallChanged?{walls}:{}):{walls,installation:{...i,field,center,centerFrame,border},selectedPlacementId:null};
   }),
   // Caller validates the complete configuration before this single publication.

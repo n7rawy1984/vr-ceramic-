@@ -17,13 +17,13 @@ export function wallSurface(id:WallId,size:RoomSizeMm,a:RoomArchitecture):WallSu
 export function compileWall(surface:WallSurface,design:WallDesign,assets:readonly LayoutAsset[]):CompileResult {
   if(surface.openings.some(o=>![o.xMm,o.yMm,o.widthMm,o.heightMm].every(Number.isFinite)||o.widthMm<=0||o.heightMm<=0||o.xMm<0||o.yMm<0||o.xMm+o.widthMm>surface.widthMm||o.yMm+o.heightMm>surface.heightMm))return {ok:false,errors:['Wall opening must fit inside the surface.']};
   const installation=defaultInstallation(surface.id,design.tileAssetId,design.tileAssetId,design.tileAssetId);
-  installation.field.orientation=design.orientation;installation.jointWidthMm=design.jointWidthMm;
+  installation.field.physicalOverride=design.physicalOverride;installation.field.orientation=design.orientation;installation.jointWidthMm=design.jointWidthMm;
   const result=compileLayout(surface,installation,assets);if(!result.ok)return result;
   const cut=(r:RectMm)=>surface.openings.reduce<RectMm[]>((pieces,o)=>pieces.flatMap(p=>subtractRect(p,o)),[r]);
   const layout=result.layout;
   layout.placements=layout.placements.flatMap(p=>cut(p).map((r,index)=>{
     const corners=[[r.xMm,r.yMm],[r.xMm+r.widthMm,r.yMm+r.heightMm]].map(([x,y])=>imagePoint(p,x,y));
-    const asset=assets.find(a=>a.id===p.tileAssetId)!;
+    const asset={widthMm:p.rotationDeg===90?p.tileBounds.heightMm:p.tileBounds.widthMm,heightMm:p.rotationDeg===90?p.tileBounds.widthMm:p.tileBounds.heightMm};
     const [u1,v1]=corners[0],[u2,v2]=corners[1];
     return {...p,...r,id:`${p.id}/cut${index}`,fullTile:p.fullTile&&rectArea(r)===rectArea(p),sourceRect:{xMm:Math.min(u1,u2)*asset.widthMm,yMm:Math.min(v1,v2)*asset.heightMm,widthMm:Math.abs(u2-u1)*asset.widthMm,heightMm:Math.abs(v2-v1)*asset.heightMm}};
   }));

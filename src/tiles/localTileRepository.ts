@@ -4,7 +4,7 @@ import { tileToProduct } from './materialAdapter.ts';
 import { FLOOR_CERAMICS } from '../catalog/materials.ts';
 import type { MaterialProduct } from '../catalog/types.ts';
 import type { TileStorage } from './localTileStorage.ts';
-import { IDENTITY_TRANSFORM, validSource, validVariant, type MaterialSource, type PhysicalVariant, type VariantInput } from './variantModel.ts';
+import { IDENTITY_TRANSFORM, validSource, validVariant, type MaterialSource, type PhysicalVariant, type VariantInput, type ImageTransform } from './variantModel.ts';
 import { imageDimensions } from './imageDimensions.ts';
 export type LocalTileInput={productKind?:'tile'|'slab';blob:Blob;name:string;filename:string;widthMm:number;heightMm:number;materialType:string;finish:TileFinish;rotation:number;crop:CropData|null};
 export function builtinSources():MaterialSource[]{return FLOOR_CERAMICS.map(p=>({id:`builtin:${p.id}`,name:p.name,builtinProductId:p.id,sourceFilename:null,mimeType:'procedural',pixelWidth:p.tileWidth>=p.tileHeight?768:Math.round(768*p.tileWidth/p.tileHeight),pixelHeight:p.tileHeight>=p.tileWidth?768:Math.round(768*p.tileHeight/p.tileWidth),crop:null,rotation:0,materialType:'Ceramic',finish:p.finish??'matte',createdAt:'',updatedAt:''}));}
@@ -51,9 +51,9 @@ export function createLocalTileRepository(storage:TileStorage,changed:(tiles:Til
     try{await storage.put(source,variant);}catch{throw Error('Could not save on this device. Free some browser storage and retry.');}
     urls.set(source.id,URL.createObjectURL(input.blob));const state=useLibrary.getState();publish([...state.sources,source],[variant,...state.variants]);return useLibrary.getState().tiles.find(t=>t.id===id)!;
   });}
-  function createVariant(sourceId:string,input:VariantInput){return serialize(async()=>{
+  function createVariant(sourceId:string,input:VariantInput,transform:ImageTransform=IDENTITY_TRANSFORM){return serialize(async()=>{
     await ready();const s=useLibrary.getState();if(!s.sources.some(s=>s.id===sourceId))throw Error('This material is unavailable.');
-    const now=new Date().toISOString(),variant:PhysicalVariant={id:crypto.randomUUID(),sourceId,...input,name:input.name.trim(),defaultOrientation:0,transform:{...IDENTITY_TRANSFORM},createdAt:now,updatedAt:now};
+    const now=new Date().toISOString(),variant:PhysicalVariant={id:crypto.randomUUID(),sourceId,...input,name:input.name.trim(),defaultOrientation:0,transform:{...transform},createdAt:now,updatedAt:now};
     if(!validVariant(variant))throw Error('Enter a name and physical dimensions from 0.001 to 100000 mm (up to 3 decimal places).');
     await storage.putVariant(variant);publish(s.sources,[variant,...s.variants]);return variant;
   });}

@@ -1,3 +1,4 @@
+import type { PhysicalSize } from '../tiles/physicalSize.ts';
 import { create } from "zustand";
 import type { MaterialProduct } from "../catalog/types.ts";
 import { FLOOR_CERAMICS } from "../catalog/materials.ts";
@@ -12,6 +13,8 @@ interface ConfiguratorState {
   floorImageError: string | null;
   setFloorImageError: (error: string | null) => void;
   selectedFloorId: string;
+  physicalOverride?:PhysicalSize;
+  previousPhysicalOverride?:PhysicalSize;
   /** The ceramic that was selected right before the current one — powers Compare. */
   previousFloorId: string | null;
   setSelectedFloorId: (id: string) => void;
@@ -44,7 +47,7 @@ interface ConfiguratorState {
 
 export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   uploadedProducts: [],
-  reconcileAssetIds: ids => set(s => ({selectedFloorId:ids.has(s.selectedFloorId)?s.selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:s.previousFloorId&&ids.has(s.previousFloorId)?s.previousFloorId:null,compareActive:s.previousFloorId&&ids.has(s.previousFloorId)?s.compareActive:false})),
+  reconcileAssetIds: ids => set(s => ({physicalOverride:ids.has(s.selectedFloorId)?s.physicalOverride:undefined,previousPhysicalOverride:s.previousFloorId&&ids.has(s.previousFloorId)?s.previousPhysicalOverride:undefined,selectedFloorId:ids.has(s.selectedFloorId)?s.selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:s.previousFloorId&&ids.has(s.previousFloorId)?s.previousFloorId:null,compareActive:s.previousFloorId&&ids.has(s.previousFloorId)?s.compareActive:false})),
   setUploadedProducts: (products) => set((s) => {
     const exists = (id: string | null) => id && [...FLOOR_CERAMICS, ...products].some(p => p.id === id);
     return {
@@ -61,7 +64,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   setSelectedFloorId: (id) => {
     const current = get().selectedFloorId;
     if (id === current) { set({compareActive:false}); return; }
-    set({ selectedFloorId: id, previousFloorId: current, compareActive: false });
+    set({ selectedFloorId: id, previousFloorId: current, physicalOverride:undefined,previousPhysicalOverride:get().physicalOverride, compareActive: false });
   },
 
   compareActive: false,

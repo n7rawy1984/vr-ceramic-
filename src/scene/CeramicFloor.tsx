@@ -1,3 +1,4 @@
+import { effectiveProduct } from '../tiles/physicalSize';
 import { useTileProducts } from "../tiles/useTileProducts";
 import { useRoom } from "./useRoom";
 import { useEffect, useMemo } from "react";
@@ -15,6 +16,7 @@ export function CeramicFloor() {
   const setFloorImageError = useConfiguratorStore((s) => s.setFloorImageError);
   const selectedFloorId = useConfiguratorStore((s) => s.selectedFloorId);
   const previousFloorId = useConfiguratorStore((s) => s.previousFloorId);
+  const sizeOverride=useConfiguratorStore(s=>s.compareActive&&s.previousFloorId?s.previousPhysicalOverride:s.physicalOverride);
   const compareActive = useConfiguratorStore((s) => s.compareActive);
 
   // "Compare" swaps which product is rendered without touching the actual
@@ -22,8 +24,8 @@ export function CeramicFloor() {
   const displayFloorId = compareActive && previousFloorId ? previousFloorId : selectedFloorId;
 
   const product = useMemo(
-    () => getProductById(displayFloorId, products) ?? FLOOR_CERAMICS[0],
-    [displayFloorId, products],
+    () => effectiveProduct(getProductById(displayFloorId, products) ?? FLOOR_CERAMICS[0],sizeOverride),
+    [displayFloorId, products,sizeOverride],
   );
 
   const { material, error } = useTiledCeramicMaterial({

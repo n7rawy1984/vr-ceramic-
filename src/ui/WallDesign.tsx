@@ -1,3 +1,5 @@
+import { PhysicalSizeEditor } from './PhysicalSizeEditor';
+import { effectiveProduct, validPhysicalSize } from '../tiles/physicalSize';
 import { drawPlacementImage } from '../layout/drawPlacementImage';
 import { ImageQuality } from './ImageQuality';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -39,21 +41,22 @@ function Elevation({wall}:{wall:ReturnType<typeof useWall>}){
 }
 function SurfaceEditor({id}:{id:WallId}){
   const wall=useWall(id);
-  const [draft,setDraft]=useState(()=>({enabled:wall.design.enabled,tileAssetId:wall.design.tileAssetId,orientation:wall.design.orientation,joint:String(wall.design.jointWidthMm)}));
+  const [draft,setDraft]=useState(()=>({enabled:wall.design.enabled,tileAssetId:wall.design.tileAssetId,physicalOverride:wall.design.physicalOverride,orientation:wall.design.orientation,joint:String(wall.design.jointWidthMm)}));
   const [errors,setErrors]=useState<string[]>([]);
   const selected=wall.products.find(p=>p.id===draft.tileAssetId);
-  const dirty=draft.enabled!==wall.design.enabled||draft.tileAssetId!==wall.design.tileAssetId||draft.orientation!==wall.design.orientation||draft.joint!==String(wall.design.jointWidthMm);
+  const dirty=JSON.stringify(draft.physicalOverride)!==JSON.stringify(wall.design.physicalOverride)||draft.enabled!==wall.design.enabled||draft.tileAssetId!==wall.design.tileAssetId||draft.orientation!==wall.design.orientation||draft.joint!==String(wall.design.jointWidthMm);
   function apply(){
-    const design={enabled:draft.enabled,tileAssetId:draft.tileAssetId,orientation:draft.orientation,jointWidthMm:draft.joint.trim()?Number(draft.joint):NaN};
+    const design={enabled:draft.enabled,tileAssetId:draft.tileAssetId,physicalOverride:draft.physicalOverride,orientation:draft.orientation,jointWidthMm:draft.joint.trim()?Number(draft.joint):NaN};
     if(!Number.isFinite(design.jointWidthMm)||design.jointWidthMm<0||design.jointWidthMm>100){setErrors(['Joint must be from 0 to 100 mm.']);return;}
     if(!selected){setErrors(['Choose an available tile.']);return;}
+    if(design.physicalOverride!==undefined&&!validPhysicalSize(design.physicalOverride)){setErrors(['Enter physical dimensions from 0.001 to 100000 mm, with up to 3 decimal places.']);return;}
     if(design.enabled){const result=cachedWallCompile(wall.surface,design,wall.products.map(layoutAsset));if(!result.ok){setErrors(result.errors);return;}}
     const state=useFloorDesignStore.getState();useFloorDesignStore.setState({walls:{...state.walls,[id]:design}});setDraft({...draft,joint:String(design.jointWidthMm)});setErrors([]);
   }
   return <><div className="wall-editor-content"><div className="design-fields"><fieldset><legend>{id[0].toUpperCase()+id.slice(1)} Wall · Straight</legend>
     <label className="design-toggle"><input type="checkbox" checked={draft.enabled} onChange={e=>setDraft({...draft,enabled:e.target.checked})}/>Tile this wall</label>
-    <label>Wall tile<select aria-label="Wall tile" value={draft.tileAssetId} onChange={e=>setDraft({...draft,tileAssetId:e.target.value})}>{wall.products.map(p=><option key={p.id} value={p.id}>{p.name} · {layoutAsset(p).widthMm} × {layoutAsset(p).heightMm} mm · {p.productKind==='slab'?'Slab':'Tile'}</option>)}</select></label>
-    <ImageQuality product={selected}/><label>Wall orientation<select value={draft.orientation} onChange={e=>setDraft({...draft,orientation:Number(e.target.value) as 0|90})}><option value="0">0°</option><option value="90">90°</option></select></label>
+    <label>Wall tile<select aria-label="Wall tile" value={draft.tileAssetId} onChange={e=>setDraft({...draft,tileAssetId:e.target.value,physicalOverride:undefined})}>{wall.products.map(p=><option key={p.id} value={p.id}>{p.name} · {layoutAsset(p).widthMm} × {layoutAsset(p).heightMm} mm · {p.productKind==='slab'?'Slab':'Tile'}</option>)}</select></label>
+    <ImageQuality product={selected?effectiveProduct(selected,draft.physicalOverride):undefined}/>{selected&&<PhysicalSizeEditor key={selected.id} product={selected} override={draft.physicalOverride} draft label="Wall physical size" onChange={physicalOverride=>setDraft({...draft,physicalOverride})} onSaved={tileAssetId=>setDraft({...draft,tileAssetId,physicalOverride:undefined})}/>}<label>Wall orientation<select value={draft.orientation} onChange={e=>setDraft({...draft,orientation:Number(e.target.value) as 0|90})}><option value="0">0°</option><option value="90">90°</option></select></label>
     <label>Wall joint (mm)<input type="number" step=".1" min="0" max="100" value={draft.joint} onChange={e=>setDraft({...draft,joint:e.target.value})}/></label>
     <p className="design-hint">Real tile dimensions. Changes appear after Apply Surface. Closing or switching walls discards unapplied edits.</p>
   </fieldset></div><Elevation wall={wall}/></div><footer className="design-action-footer">{errors.length>0&&<div role="alert" className="design-error">{errors.join(' ')}</div>}<span role="status">{dirty?'Unapplied changes':'Surface applied'}</span><button className="hud-button hud-button-primary" disabled={!dirty} onClick={apply}>Apply Surface</button></footer></>;
