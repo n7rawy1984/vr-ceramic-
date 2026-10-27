@@ -44,11 +44,11 @@ Do not put these values in React, Vite `define`, a public asset, URL query param
 
 ### Temporary public presentation mode
 
-For a presentation independent of the API, set **`VITE_PUBLIC_DEMO_MODE=true`** in the frontend build environment and rebuild. In Vercel, set it for the intended environment before creating the deployment. No deployment was performed here. This public boolean contains no credentials; never prefix Supabase credentials with `VITE_`.
+**Current presentation build:** My Tiles unconditionally opens `DemoTileLibrary`. No environment variable or API service is required. `TileLibrary.tsx` no longer checks either demo flag, and the demo form explicitly saves locally. The protected UI is preserved separately in `src/ui/ProtectedTileLibrary.tsx`; server/Supabase code is untouched. No deployment was performed here.
 
 This mode opens **My Tiles** immediately without session, login or tile API requests. JPG/PNG/WebP uploads use the existing preview, crop/rotate, physical dimensions, material and finish controls. Prepared images have browser-local object URLs; metadata stays in memory and uses the same TileAsset adapter and layout pipeline. Tiles survive panel close/reopen and catalog remounts, work independently in Main Field, Center Frame and Center, and disappear on page refresh. Deleted tile URLs are revoked; the browser releases remaining URLs with the document. No localStorage, IndexedDB or backend persistence is introduced. The only session note is “Demo uploads are kept for this session.”
 
-Omit the flag or set it to `false` and rebuild to use the existing server-backed library. The separate server flag below must also be absent/false to require protected admin access. Changing a Vite environment variable requires a new frontend build; restarting a function alone cannot change this browser mode.
+Reactivating the server-backed library after the presentation requires an explicit code change to mount `ProtectedTileLibrary`; changing an environment variable does not switch the current presentation. The server-backed details below are retained for that later reactivation.
 
 ### Optional server-backed public access
 

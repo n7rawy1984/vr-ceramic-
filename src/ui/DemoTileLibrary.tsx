@@ -23,7 +23,7 @@ export function DemoTileLibrary({ open, onClose }: { open: boolean; onClose: () 
     <header className="tile-library-header"><div><span className="tile-eyebrow">Your materials</span><h2 id="demo-library-title">My Tiles</h2></div><button className="hud-button" onClick={onClose} aria-label="Close tile library">Close</button></header>
     <p className="tile-help">Demo uploads are kept for this session.</p>
     <div className="tile-library-columns">
-      <TileUploadForm onSaved={() => {}} onExpired={() => {}} onBusy={() => {}} />
+      <TileUploadForm localOnly onSaved={() => {}} onExpired={() => {}} onBusy={() => {}} />
       <section className="saved-tile-library" aria-label="Saved uploaded tiles">
         <h3>Saved Tiles <span>({tiles.length})</span></h3>
         {!tiles.length && <div className="tile-library-empty">Add your first tile to see it at real scale in the room.</div>}

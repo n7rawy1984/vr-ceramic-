@@ -1,4 +1,4 @@
-/** Production preview acceptance: VITE_PUBLIC_DEMO_MODE=true; no API/backend running. */
+/** Forced client-only presentation acceptance: no environment flags or API/backend required. */
 import assert from 'node:assert/strict';
 import {browser} from './cdp.mjs';
 const {send,evaluate,until,click,button,field,shot,listeners,close}=await browser();
