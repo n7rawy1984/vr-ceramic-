@@ -1,3 +1,5 @@
+import { ProjectProvider } from "./projects/ProjectProvider";
+import { Projects } from "./ui/Projects";
 import { Canvas, useThree } from "@react-three/fiber";
 import { XR, useXR } from "@react-three/xr";
 import { useStore } from "zustand";
@@ -67,6 +69,7 @@ export default function App() {
     <div className="app-root">
       <ErrorBoundary>
         <FloorDesignProvider>
+        <ProjectProvider>
         <Canvas
           frameloop={plan && !inSession ? "demand" : "always"}
           shadows="variance"
@@ -89,7 +92,9 @@ export default function App() {
         <CeramicCatalog />
         <FloorDesign />
         <RoomSettings />
+        <Projects />
         {floorImageError && <div className="floor-image-error" role="alert">{floorImageError}</div>}
+        </ProjectProvider>
       </FloorDesignProvider>
       </ErrorBoundary>
     </div>

@@ -8,6 +8,7 @@ import type { CompileResult } from "./model";
 import type { MaterialProduct } from "../catalog/types";
 import { roomSurface, type RoomSizeMm } from "./roomDimensions";
 import { FloorDesignContext } from "./useFloorDesign";
+import { publishAppliedProject, type PreparedProject } from "../projects/runtime";
 export function FloorDesignProvider({ children }: { children: ReactNode }) {
   const products=useTileProducts();
   const architecture=useFloorDesignStore(s=>s.architecture);
@@ -38,11 +39,16 @@ export function FloorDesignProvider({ children }: { children: ReactNode }) {
     }
     state.applyRoom(nextSize,architecture);return [];
   },[products]);
+  const restoreProject = useCallback((preparedProject:PreparedProject)=>{
+    const {state,products,result}=preparedProject;
+    prepared.current={configuration:{roomSize:state.roomSize,installation:state.floorDesign.installation},products,result};
+    publishAppliedProject(state);
+  },[]);
   const result = useMemo(() => {
     const cached=prepared.current;
-    return cached?.configuration.roomSize===roomSize&&cached.configuration.installation===installation&&cached.products===products
+    return cached?.configuration.roomSize===roomSize&&cached.configuration.installation===installation&&cached.products.length===products.length&&cached.products.every((p,index)=>p===products[index])
       ? cached.result : compileLayout(roomSurface(roomSize), installation, products.map(layoutAsset));
   }, [roomSize, installation, products]);
-  const value = useMemo(() => ({ products, result, applyDraft, applyRoom }), [products, result, applyDraft, applyRoom]);
+  const value = useMemo(() => ({ products, result, applyDraft, applyRoom, restoreProject }), [products, result, applyDraft, applyRoom, restoreProject]);
   return <FloorDesignContext.Provider value={value}>{children}</FloorDesignContext.Provider>;
 }

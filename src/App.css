@@ -639,3 +639,16 @@
 .room-settings-dialog { width:min(400px,calc(100vw - 24px)); height:min(780px,calc(100dvh - 32px)); padding:0; border:0; border-radius:16px; background:#1e232a; color:#f1f5f9; color-scheme:dark; }
 .room-settings-dialog::backdrop { background:#070a1077; }
 .room-settings-dialog .floor-design-panel { border-radius:16px; }
+
+/* Local projects: compact controls, one modal, no scene or catalog takeover. */
+.project-toolbar{position:fixed;left:28px;top:74px;z-index:30;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 56px);pointer-events:auto;flex-wrap:wrap}
+.project-active-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;font-size:12px;text-shadow:0 1px 3px #000;background:#273444b8;padding:7px 9px;border-radius:7px}
+.project-active-name small{font-size:10px;opacity:.85}.project-toolbar .hud-button{padding:7px 10px;font-size:11px;background:#34475be6}.project-feedback{font-size:12px;color:#fff;background:#273444aa;border-radius:6px;padding:3px 6px}.project-feedback:empty{display:none}
+.project-toolbar.in-plan{top:12px;left:auto;right:106px;max-width:calc(100vw - 290px)}
+.project-warning{border:0;border-radius:6px;padding:7px;background:#ffedc7;color:#442f07;font-size:11px;cursor:pointer}
+.project-startup{position:fixed;inset:0;z-index:150;background:#18212a9c;color:white;display:grid;place-items:center;font-size:14px}
+.projects-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 40px);box-sizing:border-box;overflow:auto;padding:24px;border:1px solid #536170;border-radius:16px;background:#222b34;color:#f5f7fa;box-shadow:0 20px 80px #0008}.projects-dialog::backdrop{background:#10182199}
+.project-library-actions,.project-card-actions,.project-confirm>div,.project-name-form>div{display:flex;gap:8px;flex-wrap:wrap}.project-list{display:grid;gap:12px;margin-top:16px}.project-card{border:1px solid #4d5966;border-radius:10px;padding:14px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}.project-card h3{font-size:15px;margin:0 0 6px;overflow-wrap:anywhere}.project-card p{font-size:12px;color:#b9c4d0;margin:0}.project-card h3 small{font-weight:400;font-size:11px}.project-card-actions .hud-button{font-size:12px;padding:7px 10px}.project-name-form{display:grid;gap:16px;margin:20px 0}.project-name-form label{display:grid;gap:8px;font-size:13px}.project-name-form input{font:inherit;border:1px solid #6e7a86;border-radius:7px;background:#101821;color:white;padding:12px}.project-confirm{margin:20px 0}.project-confirm p{line-height:1.5}.project-notice{padding:4px 12px;border-radius:8px;background:#51472d;font-size:13px;overflow-wrap:anywhere}
+@media(max-width:900px){.project-toolbar{left:16px;max-width:calc(100vw - 32px)}.project-toolbar.in-plan{left:auto;max-width:calc(100vw - 290px)}.project-active-name{max-width:150px}.project-card{align-items:flex-start}}
+@media(max-width:700px){.project-toolbar:not(.in-plan){top:100px}.project-toolbar.in-plan{top:8px;right:100px;max-width:calc(100vw - 180px)}.project-toolbar.in-plan .project-active-name,.project-toolbar.in-plan .project-feedback{display:none}}
+@media(max-width:600px){.project-toolbar{gap:5px}.project-active-name{max-width:130px}.projects-dialog{padding:16px;max-height:calc(100dvh - 24px)}.project-card-actions{gap:5px}}
