@@ -1,0 +1,46 @@
+/** Isolated UI, shared-geometry, persistence and development compile-count acceptance. */
+import assert from 'node:assert/strict';
+import {projectBrowser} from './projects-fixture.mjs';
+const url=process.argv[2]??'http://127.0.0.1:5197',profile=process.argv.includes('--profile');
+const b=await projectBrowser(url,true),{send,evaluate,button,field,settled,until,shot}=b;
+const coverage=async()=>{const {result}=await send('Profiler.takePreciseCoverage');return Object.fromEntries(['compileWall','compileLayout'].map(name=>[name,result.filter(s=>s.url.includes('/src/')).flatMap(s=>s.functions).filter(f=>f.functionName===name).reduce((n,f)=>n+f.ranges[0].count,0)]));};
+try{
+ await evaluate(`window.mesh=id=>r.getState().scene.getObjectByName('wall-tiles-'+id);window.geometry=id=>mesh(id)?.geometry.uuid;`);
+ // The actual editor supplies real applied publications; no per-keystroke geometry.
+ await button('Wall Design');
+ await field('Wall tile','mod-b');await field('Wall orientation',90);await field('Wall joint (mm)',2);
+ if(profile){await send('Profiler.enable');await send('Profiler.startPreciseCoverage',{callCount:true,detailed:false});await coverage();}
+ await field('Wall joint (mm)',3);await settled();if(profile)assert.deepEqual(await coverage(),{compileWall:0,compileLayout:0});assert.equal(await evaluate(`!!mesh('right')`),false);
+ await b.click(`document.querySelector('dialog input[type=checkbox]')`);
+ await evaluate(`window.wallPublications=0;window.floorChanges=0;`);
+ if(profile)await evaluate(`(async()=>{window.d=(await import(performance.getEntriesByType('resource').find(e=>e.name.includes('/src/state/useFloorDesignStore.ts')).name)).useFloorDesignStore;window.stopWalls=d.subscribe((s,p)=>{if(s.walls!==p.walls)wallPublications++;if(s.installation!==p.installation)floorChanges++})})()`);
+ await button('Apply Surface');await until(`!!mesh('right')`);await settled();
+ if(profile){assert.deepEqual(await coverage(),{compileWall:1,compileLayout:1});assert.equal(await evaluate('wallPublications'),1);assert.equal(await evaluate('floorChanges'),0);}
+ assert.equal(await evaluate(`mesh('right').userData.placementCount`),await evaluate(`Number(document.querySelector('.wall-elevation canvas').dataset.placementCount)`));
+ const right=await evaluate(`geometry('right')`);
+ await field('Wall joint (mm)',7);await settled();assert.equal(await evaluate(`geometry('right')`),right);if(profile)assert.deepEqual(await coverage(),{compileWall:0,compileLayout:0});
+ console.log('Wall draft / Apply verified');await shot('m6-right-elevation');await button('Close');
+ await evaluate(`p.save('M6 walls').then(()=>true)`);assert.equal(await evaluate(`record().schemaVersion`),2);assert.equal(await evaluate(`record().projectDocument.walls.right.jointWidthMm`),3);
+ // Independent walls, including the existing front door.
+ for(const [id,tile] of [['front','ceramic-03'],['back','ceramic-02'],['left','ceramic-01']]){
+   await button('Wall Design');await field('Surface',id);await field('Wall tile',tile);await b.click(`document.querySelector('dialog input[type=checkbox]')`);await button('Apply Surface');await until(`!!mesh('${id}')`);await settled();assert.equal(await evaluate(`geometry('right')`),right);if(profile)assert.deepEqual(await coverage(),{compileWall:1,compileLayout:1});await button('Close');
+ }
+ await evaluate(`p.save().then(()=>true)`);await settled();if(profile)assert.deepEqual(await coverage(),{compileWall:0,compileLayout:0});
+ const ids=await evaluate(`record().id`),saved=await evaluate(`JSON.stringify(record().projectDocument)`);
+ const buffers=`JSON.stringify(['front','back','left','right'].map(id=>{const g=r.getState().scene.getObjectByName('wall-tiles-'+id)?.geometry;return g?{p:[...g.attributes.position.array],uv:[...g.attributes.uv.array],i:[...g.index.array]}:null}))`;
+ const savedBuffers=await evaluate(buffers);
+ const other=await evaluate(`['front','back','left'].map(id=>geometry(id))`);
+ await button('Room Settings');await field('Horizontal offset (m)',.4);await field('Window width (m)',2);await field('Window height (m)',1.5);await field('Sill height (m)',.8);await settled();if(profile)assert.deepEqual(await coverage(),{compileWall:0,compileLayout:0});await button('Apply Room');await settled();if(profile)assert.deepEqual(await coverage(),{compileWall:1,compileLayout:1});assert.deepEqual(await evaluate(`['front','back','left'].map(id=>geometry(id))`),other);await button('Close');
+ await evaluate(`p.open(${JSON.stringify(ids)},true).then(()=>true)`);await settled();assert.equal(await evaluate(`JSON.stringify(record().projectDocument)`),saved);await until(`!!mesh('right')&&!!mesh('front')&&!!mesh('back')&&!!mesh('left')`);
+ assert.equal(await evaluate(buffers),savedBuffers);console.log('Independent walls / window / Open verified');await shot('m6-tiled-room');
+ if(profile){await evaluate('stopWalls()');await send('Profiler.stopPreciseCoverage');}
+ if(process.argv.includes('--profile-only')){b.check();console.log(JSON.stringify({wallDraftCompiles:0,applySurfaceCompiles:1,wallPublications:1,floorChangesOnWallApply:0,windowCompiles:1,unchangedWallBuffers:true,zeroAPI:true}));b.close();process.exit(0);}
+ const oldOrigin=await evaluate('performance.timeOrigin');await send('Page.reload');await until(`performance.timeOrigin>${oldOrigin}`);await until(`!!document.querySelector('.hud')&&!document.querySelector('.project-startup')&&!document.querySelector('.loading-screen')`);await b.bootstrap();await until(`!!r.getState().scene.getObjectByName('wall-tiles-right')`);assert.equal(await evaluate(`JSON.stringify(record().projectDocument)`),saved);assert.equal(await evaluate(buffers),savedBuffers);
+ console.log('Saved wall buffers match after reload');
+ // Existing floor-design -> simple material transition remains immediate.
+ await button('Floor Design');await field('Full joint width (mm)',4);await button('Apply Design');await button('Use simple material');await b.click(`document.querySelector('button[aria-label="Close Floor Design"]')`);
+ const patterns=await evaluate(`(async()=>{const results=[];for(const pattern of ['straight','running-bond-50','running-bond-33','checker','modular']){const i=structuredClone(record().projectDocument.floorDesign.installation);i.jointWidthMm=2;i.field={tileAssetId:'vintage-a',orientation:0,pattern,...(pattern==='checker'?{secondaryTileAssetId:'ceramic-02'}:{}),...(pattern==='modular'?{modular:{preset:'multi-size',b:{tileAssetId:'mod-b',orientation:90},c:{tileAssetId:'mod-c',orientation:0},d:{tileAssetId:'mod-d',orientation:90}}}:{})};i.centerFrame.enabled=true;i.center.enabled=true;const errors=ctx().applyDraft({roomSize:record().projectDocument.roomSize,installation:i});if(errors.length)throw Error(errors.join(' '));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));const before=JSON.stringify(ctx().result);await p.save();await p.open(record().id,true);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(JSON.stringify(ctx().result)!==before)throw Error('Floor restore differs '+pattern);results.push(pattern);}return results;})()`);assert.equal(patterns.length,5);assert.equal(await evaluate(buffers),savedBuffers);console.log('All five floor patterns restore with walls preserved');
+ const recovery=await evaluate(`(async()=>{const source=structuredClone(record()),before=JSON.stringify(ctx().result);const put=record=>new Promise((resolve,reject)=>{const req=indexedDB.open('tile-configurator-local');req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result,tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(record);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)}});const old={...structuredClone(source),id:'legacy-wall-check',schemaVersion:1};delete old.projectDocument.walls;await put(old);await p.open(old.id,true);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(Object.values(record().projectDocument.walls).some(w=>w.enabled)||JSON.stringify(ctx().result)!==before)throw Error('M5 migration changed floor or neutral walls');await p.open(source.id,true);const missing=structuredClone(source);missing.id='missing-wall-check';missing.projectDocument.walls.right.tileAssetId='gone-wall';missing.assetNames['gone-wall']='Missing wall slab';await put(missing);await p.open(missing.id,true);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(r.getState().scene.getObjectByName('wall-tiles-right')||!r.getState().scene.getObjectByName('wall-tiles-back')||!p.store.getState().warnings.join(' ').includes('Missing wall slab')||JSON.stringify(ctx().result)!==before)throw Error('Missing wall recovery affected unrelated surfaces');await p.open(source.id,true);return true})()`);assert(recovery);
+ await button('Wall Design');await send('Emulation.setDeviceMetricsOverride',{width:640,height:800,deviceScaleFactor:1,mobile:false});await settled();await shot('m6-compact-wall-dialog');await button('Close');
+ b.check();console.log(JSON.stringify({wallDraftCompiles:0,applySurfaceCompiles:1,wallPublications:1,unrelatedSurfacesPreserved:true,appliedOnlySave:true,schema:2,reloadRestored:true,zeroAPI:true,profile}));
+}finally{b.close()}

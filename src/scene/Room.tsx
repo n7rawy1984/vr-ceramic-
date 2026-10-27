@@ -1,3 +1,5 @@
+import { TiledWall } from './TiledWall';
+import { WALL_IDS } from '../surfaces/model';
 import { useRoom } from './useRoom';
 import { useEffect, useMemo, type RefObject } from 'react';
 import * as THREE from 'three';
@@ -25,6 +27,7 @@ export function Room({overheadRef}:{overheadRef?:RefObject<THREE.Group|null>}) {
   const skirtingHeight=Math.min(.1,h*.05),skirtingDepth=Math.min(.01,w/20,l/20);
   return <group name="room-shell">
     <FloorSurface/>
+    {WALL_IDS.map(id=><TiledWall key={id} id={id}/>)}
     <group name="overhead" ref={overheadRef}>
       <mesh name="flat-ceiling" position={[0,h,0]} rotation={[Math.PI/2,0,0]} material={ceiling} receiveShadow><planeGeometry args={[w,l]}/></mesh>
       {a.ceiling.style==='gypsum'&&<group name="gypsum-ceiling" userData={{inset,drop}}>

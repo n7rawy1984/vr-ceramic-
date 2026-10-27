@@ -1,3 +1,4 @@
+import { defaultWalls, type WallDesigns } from '../surfaces/model.ts';
 import { create } from "zustand";
 import { FLOOR_CERAMICS } from "../catalog/materials.ts";
 import { FLOOR_SURFACE } from "../layout/floorSurface.ts";
@@ -7,6 +8,9 @@ import { DEFAULT_ARCHITECTURE, type RoomArchitecture } from "../layout/roomArchi
 const initial = (id = FLOOR_CERAMICS[0].id) => defaultInstallation(FLOOR_SURFACE.id, id, FLOOR_CERAMICS[2].id, FLOOR_CERAMICS[0].id);
 export type DesignConfiguration = { roomSize: RoomSizeMm; installation: FloorInstallation };
 interface FloorDesignState {
+  walls: WallDesigns;
+  wallPanelOpen:boolean;
+  setWallPanelOpen:(open:boolean)=>void;
   roomSize: RoomSizeMm;
   architecture: RoomArchitecture;
   applyRoom: (roomSize: RoomSizeMm, architecture: RoomArchitecture) => void;
@@ -29,10 +33,13 @@ interface FloorDesignState {
 }
 /** Session-local design, separate from legacy material Compare and camera commands. */
 export const useFloorDesignStore = create<FloorDesignState>((set) => ({
+  walls: defaultWalls(), wallPanelOpen:false, setWallPanelOpen:wallPanelOpen=>set({wallPanelOpen}),
   roomSize: {...DEFAULT_ROOM_SIZE},
   architecture: structuredClone(DEFAULT_ARCHITECTURE),
   applyRoom: (roomSize,architecture) => set({roomSize,architecture,selectedPlacementId:null}),
   reconcileAssets: (ids) => set(s => {
+    const walls=Object.fromEntries(Object.entries(s.walls).map(([key,w])=>[key,ids.has(w.tileAssetId)?w:{...w,enabled:false,tileAssetId:FLOOR_CERAMICS[0].id}])) as WallDesigns;
+    const wallChanged=Object.keys(walls).some(key=>walls[key as keyof WallDesigns]!==s.walls[key as keyof WallDesigns]);
     const i=s.installation;
     const missingA=!ids.has(i.field.tileAssetId);
     const missingB=!!i.field.secondaryTileAssetId&&!ids.has(i.field.secondaryTileAssetId);
@@ -48,7 +55,7 @@ export const useFloorDesignStore = create<FloorDesignState>((set) => ({
     const center=ids.has(i.center.tileAssetId)?i.center:{...i.center,tileAssetId:FLOOR_CERAMICS[0].id};
     const centerFrame=ids.has(i.centerFrame.tileAssetId)?i.centerFrame:{...i.centerFrame,tileAssetId:FLOOR_CERAMICS[2].id};
     const border=ids.has(i.border.tileAssetId)?i.border:{...i.border,tileAssetId:FLOOR_CERAMICS[2].id};
-    return field===i.field&&center===i.center&&centerFrame===i.centerFrame&&border===i.border?{}:{installation:{...i,field,center,centerFrame,border},selectedPlacementId:null};
+    return field===i.field&&center===i.center&&centerFrame===i.centerFrame&&border===i.border? (wallChanged?{walls}:{}):{walls,installation:{...i,field,center,centerFrame,border},selectedPlacementId:null};
   }),
   // Caller validates the complete configuration before this single publication.
   applyDesign: ({roomSize,installation}) => set({roomSize,installation,enabled:true,selectedPlacementId:null}),

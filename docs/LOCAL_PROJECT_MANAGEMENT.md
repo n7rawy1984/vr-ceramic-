@@ -1,5 +1,7 @@
 # Milestone 5 — Local Project Management
 
+Historical M5 contract (checkpoint `2f49545`). M6 extends project documents to schema 2 with independent walls and in-memory v1 migration; IndexedDB remains v2. See [WALL_DESIGN.md](WALL_DESIGN.md) for the current extension.
+
 Projects are local to this browser profile and site origin. The showroom still works without creating a project. Projects / Save Project controls show the active name and Saved / Unsaved status. One compact modal provides New, Open, Rename, Duplicate and confirmed Delete. No backend, login, cloud sync, new dependencies or tile-image copies.
 
 ## Architecture and schema

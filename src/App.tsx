@@ -1,3 +1,4 @@
+import { WallDesign } from './ui/WallDesign';
 import { ProjectProvider } from "./projects/ProjectProvider";
 import { Projects } from "./ui/Projects";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -92,6 +93,7 @@ export default function App() {
         <CeramicCatalog />
         <FloorDesign />
         <RoomSettings />
+        <WallDesign />
         <Projects />
         {floorImageError && <div className="floor-image-error" role="alert">{floorImageError}</div>}
         </ProjectProvider>

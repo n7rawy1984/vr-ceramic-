@@ -1,3 +1,5 @@
+import { WALL_IDS } from '../surfaces/model';
+import { cachedWallCompile, wallSurface } from '../surfaces/compiler';
 import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useTileProducts } from "../tiles/useTileProducts";
 import { architectureErrors, type RoomArchitecture } from "./roomArchitecture";
@@ -20,6 +22,8 @@ export function FloorDesignProvider({ children }: { children: ReactNode }) {
   const applyDraft = useCallback((configuration: DesignConfiguration): string[] => {
     const errors=architectureErrors(configuration.roomSize,architecture);
     if(errors.length)return errors;
+    const state=useFloorDesignStore.getState();
+    for(const id of WALL_IDS)if(state.walls[id].enabled){const wall=cachedWallCompile(wallSurface(id,configuration.roomSize,architecture),state.walls[id],products.map(layoutAsset));if(!wall.ok)return wall.errors;}
     const result=compileLayout(roomSurface(configuration.roomSize),configuration.installation,products.map(layoutAsset));
     if(!result.ok)return result.errors;
     prepared.current={configuration,products,result};
@@ -29,6 +33,7 @@ export function FloorDesignProvider({ children }: { children: ReactNode }) {
   const applyRoom=useCallback((size:RoomSizeMm,architecture:RoomArchitecture):string[]=>{
     const errors=architectureErrors(size,architecture);if(errors.length)return errors;
     const state=useFloorDesignStore.getState();
+    for(const id of WALL_IDS)if(state.walls[id].enabled){const result=cachedWallCompile(wallSurface(id,size,architecture),state.walls[id],products.map(layoutAsset));if(!result.ok)return result.errors;}
     const same=size.widthMm===state.roomSize.widthMm&&size.lengthMm===state.roomSize.lengthMm;
     const nextSize=same?state.roomSize:size;
     if(!same&&state.enabled){
