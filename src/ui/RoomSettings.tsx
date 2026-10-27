@@ -1,3 +1,4 @@
+import { LightingControls } from './LightingControls';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFloorDesignStore } from '../state/useFloorDesignStore';
@@ -24,6 +25,7 @@ function RoomSettingsDialog() {
     <div className="floor-design-panel"><header><h2 id="room-settings-title">Room / Space</h2><button className="hud-button" onClick={close}>Close</button></header>
       <div className="design-draft"><div className="design-fields">
         <fieldset><legend>Room</legend>{number('width','Room width (m)')}{number('length','Room length (m)')}{number('height','Room height (m)')}<p className="design-hint">Real dimensions. Tile sizes stay unchanged. Very large layouts may need larger tiles.</p></fieldset>
+        <LightingControls/>
         <fieldset><legend>Furniture</legend><label>Furniture<select value={draft.furniture?'show':'hide'} onChange={e=>update({furniture:e.target.value==='show'})}><option value="hide">Hide</option><option value="show">Show</option></select></label></fieldset>
         <fieldset><legend>Window · right wall</legend><label className="design-toggle"><input type="checkbox" checked={draft.window} onChange={e=>update({window:e.target.checked})}/>Window enabled</label>
           {draft.window&&<>{number('windowWidth','Window width (m)')}{number('windowHeight','Window height (m)')}{number('sill','Sill height (m)')}{number('offset','Horizontal offset (m)')}<p className="design-hint">Offset from the wall center. Positive moves toward the back of the room. The opening and frame must fit inside the wall.</p></>}

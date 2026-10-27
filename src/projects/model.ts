@@ -1,12 +1,13 @@
+import { DEFAULT_LIGHTING, normalizeLighting, type RoomLighting } from '../lighting/model.ts';
 import { defaultWalls, WALL_IDS, type WallDesigns } from '../surfaces/model.ts';
 import { defaultInstallation, LAYOUT_PATTERNS, type FloorInstallation } from '../layout/model.ts';
 import { DEFAULT_ROOM_SIZE, type RoomSizeMm } from '../layout/roomDimensions.ts';
 import { DEFAULT_ARCHITECTURE, architectureErrors, type RoomArchitecture } from '../layout/roomArchitecture.ts';
 import { FLOOR_SURFACE } from '../layout/floorSurface.ts';
 import { FLOOR_CERAMICS } from '../catalog/materials.ts';
-export type AppliedProjectState={walls:WallDesigns;roomSize:RoomSizeMm;architecture:RoomArchitecture;floorDesign:{enabled:boolean;started:boolean;installation:FloorInstallation};materialState:{selectedFloorId:string;previousFloorId:string|null;compareActive:boolean}};
-export type ProjectDocument={schemaVersion:2;id:string;name:string;createdAt:string;updatedAt:string;projectDocument:AppliedProjectState;assetNames:Record<string,string>};
-export function defaultProjectState():AppliedProjectState{return {walls:defaultWalls(),roomSize:{...DEFAULT_ROOM_SIZE},architecture:structuredClone(DEFAULT_ARCHITECTURE),floorDesign:{enabled:false,started:false,installation:defaultInstallation(FLOOR_SURFACE.id,FLOOR_CERAMICS[0].id,FLOOR_CERAMICS[2].id,FLOOR_CERAMICS[0].id)},materialState:{selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:null,compareActive:false}};}
+export type AppliedProjectState={lighting:RoomLighting;walls:WallDesigns;roomSize:RoomSizeMm;architecture:RoomArchitecture;floorDesign:{enabled:boolean;started:boolean;installation:FloorInstallation};materialState:{selectedFloorId:string;previousFloorId:string|null;compareActive:boolean}};
+export type ProjectDocument={schemaVersion:3;id:string;name:string;createdAt:string;updatedAt:string;projectDocument:AppliedProjectState;assetNames:Record<string,string>};
+export function defaultProjectState():AppliedProjectState{return {lighting:{...DEFAULT_LIGHTING},walls:defaultWalls(),roomSize:{...DEFAULT_ROOM_SIZE},architecture:structuredClone(DEFAULT_ARCHITECTURE),floorDesign:{enabled:false,started:false,installation:defaultInstallation(FLOOR_SURFACE.id,FLOOR_CERAMICS[0].id,FLOOR_CERAMICS[2].id,FLOOR_CERAMICS[0].id)},materialState:{selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:null,compareActive:false}};}
 const object=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw Error('This saved project could not be read.');return v as Record<string,unknown>;};
 const number=(v:unknown)=>{if(typeof v!=='number'||!Number.isFinite(v))throw Error('This project contains invalid dimensions.');return v;};
 const bool=(v:unknown)=>{if(typeof v!=='boolean')throw Error('This project contains an invalid setting.');return v;};
@@ -27,18 +28,18 @@ export function normalizeAppliedState(value:unknown):AppliedProjectState{
   if(field.pattern==='checker'&&!installation.field.secondaryTileAssetId||field.pattern==='modular'&&!installation.field.modular)throw Error('This project is missing pattern settings.');
   const walls=defaultWalls();
   if(s.walls!==undefined){const values=object(s.walls);for(const key of WALL_IDS){const w=object(values[key]);const jointWidthMm=number(w.jointWidthMm);if(jointWidthMm<0||jointWidthMm>100)throw Error('This project contains an invalid wall joint width.');walls[key]={enabled:bool(w.enabled),tileAssetId:id(w.tileAssetId),orientation:orientation(w.orientation),jointWidthMm};}}
-  return {walls,roomSize,architecture,floorDesign:{enabled:bool(f.enabled),started:bool(f.started)||bool(f.enabled),installation},materialState:{selectedFloorId:id(m.selectedFloorId),previousFloorId:m.previousFloorId===null?null:id(m.previousFloorId),compareActive:bool(m.compareActive)}};
+  return {lighting:normalizeLighting(s.lighting),walls,roomSize,architecture,floorDesign:{enabled:bool(f.enabled),started:bool(f.started)||bool(f.enabled),installation},materialState:{selectedFloorId:id(m.selectedFloorId),previousFloorId:m.previousFloorId===null?null:id(m.previousFloorId),compareActive:bool(m.compareActive)}};
 }
 export function assetReferences(s:AppliedProjectState):string[]{const i=s.floorDesign.installation,m=i.field.modular;return [...new Set([...WALL_IDS.map(id=>s.walls[id].tileAssetId),s.materialState.selectedFloorId,s.materialState.previousFloorId,i.field.tileAssetId,i.field.secondaryTileAssetId,m?.b.tileAssetId,m?.c.tileAssetId,m?.d?.tileAssetId,i.border.tileAssetId,i.centerFrame.tileAssetId,i.center.tileAssetId].filter((v):v is string=>!!v))];}
 /** Future migrations belong in this version switch; unknown future versions never masquerade as v1. */
 export function normalizeProjectDocument(value:unknown):ProjectDocument{
   const v=object(value);
-  switch(v.schemaVersion){case 1:case 2:break;default:throw Error('This project version is not supported by this app.');}
-  if(v.schemaVersion===2&&object(v.projectDocument).walls===undefined)throw Error('This project is missing wall settings.');
+  switch(v.schemaVersion){case 1:case 2:case 3:break;default:throw Error('This project version is not supported by this app.');}
+  if(v.schemaVersion!==1&&object(v.projectDocument).walls===undefined)throw Error('This project is missing wall settings.');
   const name=projectName(v.name),projectDocument=normalizeAppliedState(v.schemaVersion===1?{...object(v.projectDocument),walls:defaultWalls()}:v.projectDocument),assetNames:Record<string,string>={};
   const names=v.assetNames===undefined?{}:object(v.assetNames);
   for(const key of assetReferences(projectDocument))if(typeof names[key]==='string')assetNames[key]=names[key].slice(0,120);
   const date=(v:unknown)=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))throw Error('This project contains invalid dates.');return new Date(v).toISOString();};
-  return {schemaVersion:2,id:id(v.id),name,createdAt:date(v.createdAt),updatedAt:date(v.updatedAt),projectDocument,assetNames};
+  return {schemaVersion:3,id:id(v.id),name,createdAt:date(v.createdAt),updatedAt:date(v.updatedAt),projectDocument,assetNames};
 }
 export const stateFingerprint=(s:AppliedProjectState)=>JSON.stringify(normalizeAppliedState(s));

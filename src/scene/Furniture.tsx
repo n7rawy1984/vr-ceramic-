@@ -1,6 +1,6 @@
 import { useRoom } from "./useRoom";
 import { RoundedBox } from "@react-three/drei";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { getAbstractArtTexture } from "../textures/generateAbstractArt";
 
@@ -89,7 +89,7 @@ function SideTable() {
 }
 
 /** A floor lamp for warm ambient decor. */
-function FloorLamp() {
+export function FloorLamp({visible=true}:{visible?:boolean}) {
   const ROOM = useRoom();
   const pole = useMemo(() => mat("#3a3a3a", 0.4, 0.6), []);
   const shade = useMemo(
@@ -97,8 +97,9 @@ function FloorLamp() {
     [],
   );
 
+  useEffect(()=>()=>{pole.dispose();shade.dispose();},[pole,shade]);
   return (
-    <group position={[ROOM.width / 2 - 0.5, 0, -ROOM.length / 2 + 0.5]}>
+    <group visible={visible} name="light-fixture" position={[ROOM.width / 2 - 0.5, 0, -ROOM.length / 2 + 0.5]}>
       <mesh position={[0, 0.015, 0]} material={pole}>
         <cylinderGeometry args={[0.11, 0.13, 0.02, 20]} />
       </mesh>
@@ -108,7 +109,6 @@ function FloorLamp() {
       <mesh position={[0, 1.58, 0]} material={shade} castShadow>
         <coneGeometry args={[0.16, 0.26, 20, 1, true]} />
       </mesh>
-      <pointLight position={[0, 1.52, 0]} intensity={0.12} distance={2} decay={2} color="#ffffff" />
     </group>
   );
 }
@@ -161,7 +161,6 @@ export function Furniture({ visible = true }: { visible?: boolean }) {
       <Sofa />
       <CoffeeTable />
       <SideTable />
-      <FloorLamp />
       <PottedPlant />
       <WallArt />
     </group>

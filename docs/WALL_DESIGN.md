@@ -1,5 +1,7 @@
 # M6 — Multi-Surface Wall Design V1
 
+Original M6 is checkpoint `841705c`. The subsequent [M6 feedback patch](M6_FEEDBACK_PATCH.md) adds camera-only cutaway and independent lighting, extending project documents from schema 2 to schema 3 without changing compiled wall geometry. The schema-2 contract below describes the original milestone.
+
 M6 starts from committed M5 checkpoint `2f49545` on `main`. Floor behavior remains in the existing Floor Design / Simple material workflow. Wall Design adds independent Front, Back, Left and Right finishes. Walls start neutral; enable Tile this wall, choose any built-in or shared local upload, choose 0°/90° and full joint width, then Apply Surface. Disabling tiling restores the neutral architectural shell. Switching walls or closing discards unapplied wall edits. The elevation always shows the applied state.
 
 ## Geometry contract
