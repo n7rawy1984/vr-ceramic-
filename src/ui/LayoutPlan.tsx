@@ -1,3 +1,4 @@
+import { drawPlacementImage } from '../layout/drawPlacementImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloorDesign } from "../layout/useFloorDesign";
 import { useCeramicTexture } from "../hooks/useCeramicTexture";
@@ -38,11 +39,7 @@ export function LayoutPlan() {
         ctx.save();ctx.beginPath();ctx.rect(p.xMm,p.yMm,p.widthMm,p.heightMm);ctx.clip();
         ctx.fillStyle=COLORS[p.zoneId];ctx.fillRect(p.xMm,p.yMm,p.widthMm,p.heightMm);
         const image=images[p.tileAssetId]?.image;
-        if(image){
-          const t=p.tileBounds;
-          if(p.rotationDeg===90){ctx.translate(t.xMm+t.widthMm,t.yMm);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0,t.heightMm,t.widthMm);}
-          else ctx.drawImage(image,t.xMm,t.yMm,t.widthMm,t.heightMm);
-        }
+        if(image)drawPlacementImage(ctx,image,p,products.find(product=>product.id===p.tileAssetId)?.imageTransform);
         // Outline real source-body edges only, never an L-cut's subdivision seam.
         ctx.strokeStyle=COLORS[p.zoneId];ctx.lineWidth=.45/scale;
         ctx.strokeRect(p.tileBounds.xMm,p.tileBounds.yMm,p.tileBounds.widthMm,p.tileBounds.heightMm);ctx.restore();
@@ -51,7 +48,7 @@ export function LayoutPlan() {
       const p=placements.find(p=>p.id===selected);if(p){ctx.strokeStyle='#f59e0b';ctx.lineWidth=3/scale;ctx.strokeRect(p.xMm,p.yMm,p.widthMm,p.heightMm);}
     };
     draw();const observer=new ResizeObserver(draw);observer.observe(element);return()=>observer.disconnect();
-  },[result,images,selected]);
+  },[result,images,selected,products]);
   if(!result.ok)return <div className="plan-empty">Correct the dimensions or tile choices to see the plan.</div>;
   const placement=result.layout.placements.find(p=>p.id===selected);
   const errors=used.map(p=>images[p.id]?.error).filter(Boolean);

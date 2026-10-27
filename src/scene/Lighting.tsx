@@ -62,10 +62,10 @@ export function Lighting() {
       />
       <object3D ref={sunTargetRef} position={[0, 0.4, 0.2]} />
 
-      {/* Neutral interior fill near the ceiling, no shadow (keeps light/shadow
+      {/* Broad interior fill at mid-height (avoids inverse-square ceiling hotspot), no shadow (keeps light/shadow
           casters to a single one for Quest headroom). */}
       <pointLight name="room-fill"
-        position={[0, ROOM.height*.85, 0]}
+        position={[0, ROOM.height*.5, 0]}
         intensity={power.point}
         distance={Math.max(10,shadowExtent*1.5)}
         decay={2}

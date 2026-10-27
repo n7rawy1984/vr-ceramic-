@@ -1,3 +1,5 @@
+import { drawPlacementImage } from '../layout/drawPlacementImage';
+import { ImageQuality } from './ImageQuality';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useFloorDesignStore } from '../state/useFloorDesignStore';
@@ -26,7 +28,7 @@ function Elevation({wall}:{wall:ReturnType<typeof useWall>}){
       ctx.translate((width-surface.widthMm*scale)/2,30);ctx.scale(scale,scale);ctx.fillStyle='#d3d0c9';ctx.fillRect(0,0,surface.widthMm,surface.heightMm);
       if(result?.ok)for(const p of result.layout.placements){
         ctx.save();ctx.beginPath();ctx.rect(p.xMm,p.yMm,p.widthMm,p.heightMm);ctx.clip();ctx.fillStyle=product?.baseColor??'#aab7bc';ctx.fillRect(p.xMm,p.yMm,p.widthMm,p.heightMm);
-        if(image){const t=p.tileBounds;if(p.rotationDeg===90){ctx.translate(t.xMm+t.widthMm,t.yMm);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0,t.heightMm,t.widthMm);}else ctx.drawImage(image,t.xMm,t.yMm,t.widthMm,t.heightMm);}
+        if(image)drawPlacementImage(ctx,image,p,product?.imageTransform);
         ctx.restore();
       }
       for(const o of surface.openings){ctx.clearRect(o.xMm,o.yMm,o.widthMm,o.heightMm);ctx.strokeStyle='#536779';ctx.lineWidth=1/scale;ctx.strokeRect(o.xMm,o.yMm,o.widthMm,o.heightMm);}
@@ -50,8 +52,8 @@ function SurfaceEditor({id}:{id:WallId}){
   }
   return <><div className="wall-editor-content"><div className="design-fields"><fieldset><legend>{id[0].toUpperCase()+id.slice(1)} Wall · Straight</legend>
     <label className="design-toggle"><input type="checkbox" checked={draft.enabled} onChange={e=>setDraft({...draft,enabled:e.target.checked})}/>Tile this wall</label>
-    <label>Wall tile<select aria-label="Wall tile" value={draft.tileAssetId} onChange={e=>setDraft({...draft,tileAssetId:e.target.value})}>{wall.products.map(p=><option key={p.id} value={p.id}>{p.name} · {layoutAsset(p).widthMm} × {layoutAsset(p).heightMm} mm</option>)}</select></label>
-    <label>Wall orientation<select value={draft.orientation} onChange={e=>setDraft({...draft,orientation:Number(e.target.value) as 0|90})}><option value="0">0°</option><option value="90">90°</option></select></label>
+    <label>Wall tile<select aria-label="Wall tile" value={draft.tileAssetId} onChange={e=>setDraft({...draft,tileAssetId:e.target.value})}>{wall.products.map(p=><option key={p.id} value={p.id}>{p.name} · {layoutAsset(p).widthMm} × {layoutAsset(p).heightMm} mm · {p.productKind==='slab'?'Slab':'Tile'}</option>)}</select></label>
+    <ImageQuality product={selected}/><label>Wall orientation<select value={draft.orientation} onChange={e=>setDraft({...draft,orientation:Number(e.target.value) as 0|90})}><option value="0">0°</option><option value="90">90°</option></select></label>
     <label>Wall joint (mm)<input type="number" step=".1" min="0" max="100" value={draft.joint} onChange={e=>setDraft({...draft,joint:e.target.value})}/></label>
     <p className="design-hint">Real tile dimensions. Changes appear after Apply Surface. Closing or switching walls discards unapplied edits.</p>
   </fieldset></div><Elevation wall={wall}/></div><footer className="design-action-footer">{errors.length>0&&<div role="alert" className="design-error">{errors.join(' ')}</div>}<span role="status">{dirty?'Unapplied changes':'Surface applied'}</span><button className="hud-button hud-button-primary" disabled={!dirty} onClick={apply}>Apply Surface</button></footer></>;

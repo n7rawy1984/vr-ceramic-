@@ -6,7 +6,7 @@ import { DEFAULT_ARCHITECTURE, architectureErrors, type RoomArchitecture } from 
 import { FLOOR_SURFACE } from '../layout/floorSurface.ts';
 import { FLOOR_CERAMICS } from '../catalog/materials.ts';
 export type AppliedProjectState={lighting:RoomLighting;walls:WallDesigns;roomSize:RoomSizeMm;architecture:RoomArchitecture;floorDesign:{enabled:boolean;started:boolean;installation:FloorInstallation};materialState:{selectedFloorId:string;previousFloorId:string|null;compareActive:boolean}};
-export type ProjectDocument={schemaVersion:3;id:string;name:string;createdAt:string;updatedAt:string;projectDocument:AppliedProjectState;assetNames:Record<string,string>};
+export type ProjectDocument={schemaVersion:4;id:string;name:string;createdAt:string;updatedAt:string;projectDocument:AppliedProjectState;assetNames:Record<string,string>};
 export function defaultProjectState():AppliedProjectState{return {lighting:{...DEFAULT_LIGHTING},walls:defaultWalls(),roomSize:{...DEFAULT_ROOM_SIZE},architecture:structuredClone(DEFAULT_ARCHITECTURE),floorDesign:{enabled:false,started:false,installation:defaultInstallation(FLOOR_SURFACE.id,FLOOR_CERAMICS[0].id,FLOOR_CERAMICS[2].id,FLOOR_CERAMICS[0].id)},materialState:{selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:null,compareActive:false}};}
 const object=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw Error('This saved project could not be read.');return v as Record<string,unknown>;};
 const number=(v:unknown)=>{if(typeof v!=='number'||!Number.isFinite(v))throw Error('This project contains invalid dimensions.');return v;};
@@ -34,12 +34,12 @@ export function assetReferences(s:AppliedProjectState):string[]{const i=s.floorD
 /** Future migrations belong in this version switch; unknown future versions never masquerade as v1. */
 export function normalizeProjectDocument(value:unknown):ProjectDocument{
   const v=object(value);
-  switch(v.schemaVersion){case 1:case 2:case 3:break;default:throw Error('This project version is not supported by this app.');}
+  switch(v.schemaVersion){case 1:case 2:case 3:case 4:break;default:throw Error('This project version is not supported by this app.');}
   if(v.schemaVersion!==1&&object(v.projectDocument).walls===undefined)throw Error('This project is missing wall settings.');
   const name=projectName(v.name),projectDocument=normalizeAppliedState(v.schemaVersion===1?{...object(v.projectDocument),walls:defaultWalls()}:v.projectDocument),assetNames:Record<string,string>={};
   const names=v.assetNames===undefined?{}:object(v.assetNames);
   for(const key of assetReferences(projectDocument))if(typeof names[key]==='string')assetNames[key]=names[key].slice(0,120);
   const date=(v:unknown)=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))throw Error('This project contains invalid dates.');return new Date(v).toISOString();};
-  return {schemaVersion:3,id:id(v.id),name,createdAt:date(v.createdAt),updatedAt:date(v.updatedAt),projectDocument,assetNames};
+  return {schemaVersion:4,id:id(v.id),name,createdAt:date(v.createdAt),updatedAt:date(v.updatedAt),projectDocument,assetNames};
 }
 export const stateFingerprint=(s:AppliedProjectState)=>JSON.stringify(normalizeAppliedState(s));

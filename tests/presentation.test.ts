@@ -58,7 +58,7 @@ test('lighting normalization preserves exact RGB and safe field defaults without
 });
 test('M5 v1 and M6 v2 without lighting migrate safely to schema 3 while preserving floor, walls and architecture',()=>{
   const state=defaultProjectState();state.walls.right.enabled=true;const {lighting:_removed,...legacy}=state;
-  for(const schemaVersion of [1,2]){const raw={id:'legacy',schemaVersion,name:'Legacy',createdAt:'2026-10-27',updatedAt:'2026-10-27',projectDocument:legacy};const p=normalizeProjectDocument(raw);assert.equal(p.schemaVersion,3);assert.deepEqual(p.projectDocument.lighting,DEFAULT_LIGHTING);assert.deepEqual(p.projectDocument.floorDesign,state.floorDesign);assert.deepEqual(p.projectDocument.architecture,state.architecture);if(schemaVersion===2)assert.deepEqual(p.projectDocument.walls,state.walls);else assert(!p.projectDocument.walls.right.enabled);}
+  for(const schemaVersion of [1,2]){const raw={id:'legacy',schemaVersion,name:'Legacy',createdAt:'2026-10-27',updatedAt:'2026-10-27',projectDocument:legacy};const p=normalizeProjectDocument(raw);assert.equal(p.schemaVersion,4);assert.deepEqual(p.projectDocument.lighting,DEFAULT_LIGHTING);assert.deepEqual(p.projectDocument.floorDesign,state.floorDesign);assert.deepEqual(p.projectDocument.architecture,state.architecture);if(schemaVersion===2)assert.deepEqual(p.projectDocument.walls,state.walls);else assert(!p.projectDocument.walls.right.enabled);}
 });
 test('real lighting application marks projects dirty, saves current lighting, and restores without replacing geometry state on a lighting-only edit',async()=>{
   const oldD=useFloorDesignStore.getState(),oldC=useConfiguratorStore.getState(),records=new Map<string,ProjectDocument>();let last:string|null=null;

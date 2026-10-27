@@ -5,7 +5,7 @@ import { useTileProducts } from "../tiles/useTileProducts";
 import { architectureErrors, type RoomArchitecture } from "./roomArchitecture";
 import { useFloorDesignStore, type DesignConfiguration } from "../state/useFloorDesignStore";
 import { compileLayout } from "./compiler";
-import { layoutAsset } from "./assets";
+import { layoutAsset, installationAssetKey } from "./assets";
 import type { CompileResult } from "./model";
 import type { MaterialProduct } from "../catalog/types";
 import { roomSurface, type RoomSizeMm } from "./roomDimensions";
@@ -49,11 +49,15 @@ export function FloorDesignProvider({ children }: { children: ReactNode }) {
     prepared.current={configuration:{roomSize:state.roomSize,installation:state.floorDesign.installation},products,result};
     publishAppliedProject(state);
   },[]);
+  const assetKey=installationAssetKey(installation,products);
+  const last=useRef<{roomSize:RoomSizeMm;installation:typeof installation;key:string;result:CompileResult}|null>(null);
   const result = useMemo(() => {
+    if(last.current?.roomSize===roomSize&&last.current.installation===installation&&last.current.key===assetKey)return last.current.result;
     const cached=prepared.current;
-    return cached?.configuration.roomSize===roomSize&&cached.configuration.installation===installation&&cached.products.length===products.length&&cached.products.every((p,index)=>p===products[index])
+    const result=cached?.configuration.roomSize===roomSize&&cached.configuration.installation===installation&&cached.products.length===products.length&&cached.products.every((p,index)=>p===products[index])
       ? cached.result : compileLayout(roomSurface(roomSize), installation, products.map(layoutAsset));
-  }, [roomSize, installation, products]);
+    last.current={roomSize,installation,key:assetKey,result};return result;
+  }, [roomSize, installation, products,assetKey]);
   const value = useMemo(() => ({ products, result, applyDraft, applyRoom, restoreProject }), [products, result, applyDraft, applyRoom, restoreProject]);
   return <FloorDesignContext.Provider value={value}>{children}</FloorDesignContext.Provider>;
 }

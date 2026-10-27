@@ -8,7 +8,7 @@ import type { MaterialProduct } from "./types.ts";
  */
 export const FLOOR_CERAMICS: MaterialProduct[] = [
   {
-    id: "ceramic-01",
+    id: "ceramic-01", sourceId:"builtin:ceramic-01", productKind:"tile", pixelWidth:384, pixelHeight:768, sourceAspect:{width:60,height:120},
     name: "Carrara White",
     code: "CR-001",
     category: "floor",
@@ -24,7 +24,7 @@ export const FLOOR_CERAMICS: MaterialProduct[] = [
     finish: "polished",
   },
   {
-    id: "ceramic-02",
+    id: "ceramic-02", sourceId:"builtin:ceramic-02", productKind:"tile", pixelWidth:768, pixelHeight:768, sourceAspect:{width:60,height:60},
     name: "Travertine Beige",
     code: "CR-002",
     category: "floor",
@@ -40,7 +40,7 @@ export const FLOOR_CERAMICS: MaterialProduct[] = [
     finish: "matte",
   },
   {
-    id: "ceramic-03",
+    id: "ceramic-03", sourceId:"builtin:ceramic-03", productKind:"tile", pixelWidth:768, pixelHeight:768, sourceAspect:{width:80,height:80},
     name: "Dark Stone",
     code: "CR-003",
     category: "floor",

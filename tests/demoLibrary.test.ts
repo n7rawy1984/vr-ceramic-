@@ -1,27 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createLocalTileRepository } from '../src/tiles/localTileRepository.ts';
-import type { StoredTile, TileStorage } from '../src/tiles/localTileStorage.ts';
+import type { TileStorage } from '../src/tiles/localTileStorage.ts';
+import { sourceDeletionError, type MaterialSource, type PhysicalVariant } from '../src/tiles/variantModel.ts';
 import { useFloorDesignStore } from '../src/state/useFloorDesignStore.ts';
 import { useConfiguratorStore } from '../src/state/useConfiguratorStore.ts';
 import { selectSimpleMaterial } from '../src/state/selectSimpleMaterial.ts';
 const input={blob:new Blob(['prepared pixels'],{type:'image/png'}),name:'Tile A',filename:'tile.png',widthMm:600,heightMm:600,materialType:'Porcelain',finish:'satin' as const,rotation:90,crop:{x:.1,y:0,width:.9,height:1}};
 function storage() {
-  const rows=new Map<string,unknown>();let reads=0;
-  const api:TileStorage={list:async()=>{reads++;return [...rows.values()];},put:async(t:StoredTile)=>{rows.set(t.id,structuredClone(t));},remove:async id=>{rows.delete(id);}};
-  return {api,rows,reads:()=>reads};
+  const rows=new Map<string,unknown>(),sources=new Map<string,MaterialSource>();let reads=0;
+  const api:TileStorage={list:async()=>{reads++;return {sources:[...sources.values()],variants:[...rows.values()]};},put:async(s,v)=>{sources.set(s.id,structuredClone(s));rows.set(v.id,structuredClone(v));},putSource:async s=>{sources.set(s.id,structuredClone(s));},putVariant:async v=>{rows.set(v.id,structuredClone(v));},remove:async id=>{const v=rows.get(id) as PhysicalVariant;if(v)rows.set(id,{...v,deleted:true});},removeSource:async id=>{const error=sourceDeletionError(id,[...rows.values()].filter(v=>!!v&&typeof v==='object'&&'sourceId' in v) as PhysicalVariant[],[]);if(error)throw Error(error);sources.delete(id);for(const [key,v] of rows)if((v as PhysicalVariant).sourceId===id)rows.delete(key);}};
+  return {api,rows,sources,reads:()=>reads};
 }
 test('local save → discard runtime → hydrate preserves blobs/metadata and recreates URLs, with one startup read',async()=>{
   const disk=storage(),repo=createLocalTileRepository(disk.api);
   await Promise.all([repo.hydrate(),repo.hydrate()]);assert.equal(disk.reads(),1);
   const tile=await repo.save(input);const product=repo.useLibrary.getState().products[0];
   assert.deepEqual(product.physicalSizeMm,{width:600,height:600});assert.equal(product.textureRotationDeg,0);
-  assert(!('imageUrl' in (disk.rows.get(tile.id) as StoredTile)), 'object URL is never persisted');
+  assert(!('imageUrl' in (disk.rows.get(tile.id) as object)), 'object URL is never persisted');
   const url=tile.imageUrl!;repo.dispose();await assert.rejects(fetch(url));
   const reloaded=createLocalTileRepository(disk.api);await reloaded.hydrate();
   const restored=reloaded.useLibrary.getState().tiles[0];assert.equal(restored.id,tile.id);assert.notEqual(restored.imageUrl,url);assert.match(restored.imageUrl!,/^blob:/);assert.equal(await (await fetch(restored.imageUrl!)).text(),'prepared pixels');
   assert.equal(restored.width_mm,600);assert.equal(restored.finish,'satin');assert.equal(restored.image_rotation,90);assert.deepEqual(restored.crop_data,input.crop);
-  await reloaded.remove(tile.id);assert.equal(disk.rows.size,0);assert.equal(reloaded.useLibrary.getState().tiles.length,0);await assert.rejects(fetch(restored.imageUrl!));reloaded.dispose();
+  await reloaded.remove(tile.id);assert.equal(reloaded.useLibrary.getState().tiles.length,0);assert.equal(disk.sources.size,1);await reloaded.removeSource(`source:${tile.id}`);assert.equal(disk.rows.size,0);assert.equal(disk.sources.size,0);await assert.rejects(fetch(restored.imageUrl!));reloaded.dispose();
 });
 test('invalid records are skipped; invalid saves and quota failure cannot publish a fake saved tile',async()=>{
   const disk=storage();disk.rows.set('broken',{id:'broken',blob:'missing'});const repo=createLocalTileRepository(disk.api);await repo.hydrate();assert.equal(repo.useLibrary.getState().status,'ready');assert.match(repo.useLibrary.getState().error,/could not be opened/);

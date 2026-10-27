@@ -1,3 +1,5 @@
+import { transformUv } from '../tiles/imageTransform.ts';
+import type { ImageTransform } from '../tiles/variantModel.ts';
 import { imagePoint } from '../layout/compiler.ts';
 import type { CompiledTilePlacement } from '../layout/model.ts';
 import type { RoomSizeMm } from '../layout/roomDimensions.ts';
@@ -12,12 +14,12 @@ export function wallWorldPoint(surface:WallSurface,size:RoomSizeMm,u:number,v:nu
     case 'right':return [size.widthMm/2000-.062,y,-x];
   }
 }
-export function wallBatchBuffers(surface:WallSurface,size:RoomSizeMm,placements:readonly CompiledTilePlacement[]){
+export function wallBatchBuffers(surface:WallSurface,size:RoomSizeMm,placements:readonly CompiledTilePlacement[],transform?:ImageTransform){
   const positions:number[]=[],normals:number[]=[],uv:number[]=[],indices:number[]=[];
   const normal=surface.id==='back'?[0,0,1]:surface.id==='front'?[0,0,-1]:surface.id==='left'?[1,0,0]:[-1,0,0];
   placements.forEach((p,i)=>{
     for(const [u,v] of [[p.xMm,p.yMm],[p.xMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm]]){
-      positions.push(...wallWorldPoint(surface,size,u,v));normals.push(...normal);const [x,y]=imagePoint(p,u,v);uv.push(x,1-y);
+      positions.push(...wallWorldPoint(surface,size,u,v));normals.push(...normal);const [x,y]=transformUv(...imagePoint(p,u,v),transform);uv.push(x,1-y);
     }
     const n=i*4;
     if(surface.id==='front'||surface.id==='right')indices.push(n,n+2,n+1,n,n+3,n+2);else indices.push(n,n+1,n+2,n,n+2,n+3);

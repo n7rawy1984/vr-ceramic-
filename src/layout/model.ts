@@ -1,9 +1,10 @@
+/** Material references named tileAssetId identify physical variants (never image sources). */
 /** All domain lengths/areas are surface-local millimeters / square millimeters. */
 export type RectMm = { xMm: number; yMm: number; widthMm: number; heightMm: number };
 export type Orientation = 0 | 90;
 export type ZoneId = "field" | "border" | "centerFrame" | "center";
 export type Surface = { id: string; widthMm: number; heightMm: number };
-export type LayoutAsset = { id: string; widthMm: number; heightMm: number };
+export type LayoutAsset = { id: string; widthMm: number; heightMm: number; productKind?: "tile"|"slab" };
 export const LAYOUT_PATTERNS = ["straight", "running-bond-50", "running-bond-33", "checker", "modular"] as const;
 export type LayoutPattern = typeof LAYOUT_PATTERNS[number];
 export type ModularSlot = { tileAssetId: string; orientation: Orientation };

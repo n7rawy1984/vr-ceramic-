@@ -71,6 +71,10 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
     const a=assetMap.get(installation.field.tileAssetId),b=installation.field.secondaryTileAssetId?assetMap.get(installation.field.secondaryTileAssetId):undefined;
     if(a&&b&&(Math.abs(a.widthMm-b.widthMm)>E||Math.abs(a.heightMm-b.heightMm)>E)) errors.push("Checker Field Tile A and Field Tile B must have equal physical body dimensions after orientation. Tiles are never stretched.");
   }
+  if(installation.field.pattern!=='straight'){
+    const patternIds=[installation.field.tileAssetId,...(installation.field.pattern==='checker'?[installation.field.secondaryTileAssetId]:[]),...(installation.field.pattern==='modular'?[installation.field.modular?.b.tileAssetId,installation.field.modular?.c.tileAssetId,installation.field.modular?.d?.tileAssetId]:[])];
+    if(patternIds.some(id=>id&&assetMap.get(id)?.productKind==='slab'))errors.push('Slab variants support Straight placement only. Choose a Tile variant for this pattern.');
+  }
   const modular = installation.field.pattern === "modular" ? multiSizeModule(installation.field,j,assetMap) : null;
   if(modular) errors.push(...modular.errors);
   const { widthMm: w, heightMm: h } = surface;

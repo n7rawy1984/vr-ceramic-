@@ -13,8 +13,10 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
-  const [width, setWidth] = useState("60");
-  const [height, setHeight] = useState("60");
+  const [width, setWidth] = useState(localOnly?"600":"60");
+  const [height, setHeight] = useState(localOnly?"600":"60");
+  const [productKind,setProductKind]=useState<"tile"|"slab">("tile");
+  const toMm=(value:string)=>localOnly?Number(value):cmToMm(Number(value));
   const [material, setMaterial] = useState<typeof MATERIAL_TYPES[number]>("Ceramic");
   const [finish, setFinish] = useState<TileFinish>("matte");
   const [rotation, setRotation] = useState(0);
@@ -47,7 +49,7 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
   }, [file, crop, rotation]);
 
   const imageReady = prepared?.file === file && prepared?.crop === crop && prepared?.rotation === rotation;
-  const dimensionsValid = validDimensionMm(cmToMm(Number(width))) && validDimensionMm(cmToMm(Number(height)));
+  const dimensionsValid = validDimensionMm(toMm(width)) && validDimensionMm(toMm(height));
   const canSave = !disabled && imageReady && !preparing && !!name.trim() && name.trim().length <= 120 && dimensionsValid;
 
   async function save(event: React.FormEvent) {
@@ -56,7 +58,7 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
     submitting.current = true; setBusy(true); onBusy(true); setError("");
     try {
       if (localOnly) {
-        const tile = await saveDemoTile({ blob: prepared.blob, name, filename: file!.name, widthMm: cmToMm(Number(width)), heightMm: cmToMm(Number(height)), materialType: material, finish, rotation, crop: crop === FULL_CROP ? null : crop });
+        const tile = await saveDemoTile({ productKind, blob: prepared.blob, name, filename: file!.name, widthMm: toMm(width), heightMm: toMm(height), materialType: material, finish, rotation, crop: crop === FULL_CROP ? null : crop });
         onSaved(tile);
         setName(""); setFile(null); setCrop(FULL_CROP); setRotation(0); setCropOpen(false);
         if (inputRef.current) inputRef.current.value = "";
@@ -80,7 +82,7 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
       }
       setPhase("Saving tile…");
       const { tile } = await api<SavedTileResponse>("tile-assets", "POST", {
-        uploadReceipt: receipt.uploadReceipt, name: name.trim(), widthMm: cmToMm(Number(width)), heightMm: cmToMm(Number(height)),
+        uploadReceipt: receipt.uploadReceipt, name: name.trim(), widthMm: toMm(width), heightMm: toMm(height),
         materialType: material, finish, imageRotation: rotation, cropData: crop === FULL_CROP ? null : crop,
       });
       onSaved(tile); reservation.current = null;
@@ -120,7 +122,7 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
         <div className="tile-image-preview" aria-busy={preparing}>
           {imageReady && prepared ? <img src={prepared.url} alt="Prepared tile preview" /> : <span>Preparing preview…</span>}
         </div>
-        <p className="tile-image-caption">{file.name} · {width || "—"} × {height || "—"} cm · {rotation}°</p>
+        <p className="tile-image-caption">{file.name} · {width || "—"} × {height || "—"} {localOnly?"mm":"cm"} · {rotation}°</p>
         <div className="tile-preparation-actions">
           <label>Rotate image<select value={rotation} onChange={e => { setError(""); setRotation(Number(e.target.value)); }}>
             {[0, 90, 180, 270].map(v => <option key={v} value={v}>{v}°</option>)}
@@ -134,10 +136,11 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false, l
           <button type="button" className="hud-button" onClick={() => setCrop(FULL_CROP)}>Reset crop</button>
         </div>}
       </>}
+      {localOnly&&<label>Product Kind<select value={productKind} onChange={e=>setProductKind(e.target.value as "tile"|"slab")}><option value="tile">Tile</option><option value="slab">Slab</option></select></label>}
       <label>Tile name<input required maxLength={120} value={name} onChange={e => setName(e.target.value)} placeholder="Carrara White" /></label>
       <div className="tile-field-row">
-        <label>Width (cm)<input required type="number" inputMode="decimal" min="0.0001" max="10000" step="0.0001" value={width} onChange={e => setWidth(e.target.value)} /></label>
-        <label>Height (cm)<input required type="number" inputMode="decimal" min="0.0001" max="10000" step="0.0001" value={height} onChange={e => setHeight(e.target.value)} /></label>
+        <label>Width ({localOnly?"mm":"cm"})<input required type="number" inputMode="decimal" min={localOnly?".001":".0001"} max={localOnly?"100000":"10000"} step={localOnly?".001":".0001"} value={width} onChange={e => setWidth(e.target.value)} /></label>
+        <label>Height ({localOnly?"mm":"cm"})<input required type="number" inputMode="decimal" min={localOnly?".001":".0001"} max={localOnly?"100000":"10000"} step={localOnly?".001":".0001"} value={height} onChange={e => setHeight(e.target.value)} /></label>
       </div>
       <div className="tile-field-row">
         <label>Material type<select value={material} onChange={e => setMaterial(e.target.value as typeof material)}>{MATERIAL_TYPES.map(v => <option key={v}>{v}</option>)}</select></label>

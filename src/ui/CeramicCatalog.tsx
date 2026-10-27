@@ -1,3 +1,4 @@
+import { ImageQuality } from './ImageQuality';
 import { useState } from "react";
 import { FLOOR_CERAMICS, getProductById } from "../catalog/materials";
 import type { MaterialFinish } from "../catalog/types";
@@ -63,10 +64,11 @@ export function CeramicCatalog() {
           <div className="selected-info">
             <span className="selected-name">{displayed.name}</span>
             <span className="selected-meta">
-              {displayed.code} · {displayed.tileWidth} × {displayed.tileHeight} cm
+              {displayed.source==='upload'?'My Tiles':displayed.code} · {displayed.tileWidth} × {displayed.tileHeight} cm · {displayed.productKind==='slab'?'Slab':'Tile'}
               {displayed.finish ? ` · ${FINISH_LABEL[displayed.finish]}` : ""}
             </span>
           </div>
+          <ImageQuality product={displayed}/>
         </div>
         <button
           className="drawer-toggle"
@@ -106,7 +108,7 @@ export function CeramicCatalog() {
                 <span className="ceramic-name">{product.name}</span>
                 <span className="ceramic-code">{product.source==='upload'?'My Tiles':product.code}</span>
                 <span className="ceramic-size">
-                  {product.tileWidth} × {product.tileHeight} cm
+                  {product.tileWidth} × {product.tileHeight} cm · {product.productKind==='slab'?'Slab':'Tile'}
                   {product.finish ? ` · ${FINISH_LABEL[product.finish]}` : ""}
                 </span>
               </div>

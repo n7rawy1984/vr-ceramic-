@@ -79,6 +79,15 @@ export function useTiledCeramicMaterial({
       metalness: 0.04,
     });
 
+    const transform=product.imageTransform;
+    mat.customProgramCacheKey=()=>JSON.stringify(transform??{});
+    const faceMapChunk=transform&&(transform.mirrorX||transform.mirrorY||transform.rotation)?`#ifdef USE_MAP
+      vec2 faceUv=vec2(fract(vMapUv.x),1.0-fract(vMapUv.y));
+      ${transform.mirrorX?'faceUv.x=1.0-faceUv.x;':''}
+      ${transform.mirrorY?'faceUv.y=1.0-faceUv.y;':''}
+      ${transform.rotation===90?'faceUv=vec2(faceUv.y,1.0-faceUv.x);':transform.rotation===180?'faceUv=1.0-faceUv;':transform.rotation===270?'faceUv=vec2(1.0-faceUv.y,faceUv.x);':''}
+      diffuseColor *= texture2D(map,vec2(faceUv.x,1.0-faceUv.y));
+      #endif`:'#include <map_fragment>';
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uGroutWidthUv = {
         value: new THREE.Vector2(groutWidthUvX, groutWidthUvY),
@@ -103,7 +112,7 @@ export function useTiledCeramicMaterial({
 
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_fragment>",
-        `#include <map_fragment>
+        `${faceMapChunk}
         #ifdef USE_MAP
         {
           // Subtle per-tile tone shift so identical tiles don't read as one
@@ -143,6 +152,7 @@ export function useTiledCeramicMaterial({
     normalMap,
     roughnessMap,
     product.id,
+    product.imageTransform,
     product.roughnessValue,
     product.groutColor,
     repeatX,

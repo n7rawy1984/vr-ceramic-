@@ -1,3 +1,4 @@
+import type { ProductKind, ImageTransform } from '../tiles/variantModel.ts';
 /** Categories the configurator can present today or in the near future. */
 export type MaterialCategory =
   | "floor"
@@ -19,6 +20,13 @@ export type ProceduralStyle = "marble" | "travertine" | "darkstone";
 export type MaterialFinish = "polished" | "matte" | "satin" | "honed";
 
 export interface MaterialProduct {
+  sourceId?:string;
+  productKind?:ProductKind;
+  pixelWidth?:number|null;
+  pixelHeight?:number|null;
+  imageTransform?:ImageTransform;
+  /** Fixed procedural source aspect, independent of physical variant size. */
+  sourceAspect?:{width:number;height:number};
   source?: "demo" | "upload";
   /** Uploaded metadata stays canonical mm; legacy demo display sizes stay cm. */
   physicalSizeMm?: { width: number; height: number };

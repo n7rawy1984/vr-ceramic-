@@ -663,3 +663,16 @@
 .wall-editor-content .design-fields { overflow: visible; flex: none; }
 .wall-elevation .design-hint { color: #475569; }
 .wall-elevation { flex-shrink: 0; }
+
+.material-card details { margin: 12px 0; }
+.material-card summary { cursor: pointer; font-weight: 600; }
+.material-size { border-top: 1px solid #ffffff25; padding: 12px 0; }
+.material-size > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.material-size .image-quality { display: block; }
+.size-variant-form { margin: 12px 0; padding: 12px; border: 1px solid #64748b; border-radius: 8px; }
+.size-variant-form label { display: grid; gap: 5px; margin: 8px 0; }
+.size-variant-form input,.size-variant-form select { box-sizing: border-box; width: 100%; padding: 8px; }
+.image-quality { font-size: 12px; margin-top: 5px; }
+.image-quality p { margin: 5px 0; }
+.catalog-header .image-quality { max-width: 260px; color: #cbd5e1; }
+.matching-size { margin: 8px 0; padding: 8px; border: 1px solid #64748b; border-radius: 6px; }

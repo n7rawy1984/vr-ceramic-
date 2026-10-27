@@ -19,10 +19,10 @@ function AssetBatch({ product, placements, report }: { product: MaterialProduct;
   const normal = useOptionalTexture(product.normalTexture);
   const roughness = useOptionalTexture(product.roughnessTexture);
   const geometry = useMemo(() => {
-    const {positions,normals,uv,indices}=floorBatchBuffers(surface,placements);
+    const {positions,normals,uv,indices}=floorBatchBuffers(surface,placements,product.imageTransform);
     const g=new THREE.BufferGeometry();
     g.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));g.setAttribute("normal",new THREE.Float32BufferAttribute(normals,3));g.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeBoundingSphere();return g;
-  }, [surface,placements]);
+  }, [surface,placements,product.imageTransform]);
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color: texture ? "#ffffff" : "#c6c6c6", map: texture ?? null, normalMap: normal, roughnessMap: roughness,
     roughness: roughness ? 1 : (product.roughnessValue ?? .82), metalness: .04,
@@ -44,9 +44,9 @@ export function AdvancedFloor() {
   const groups = useMemo(() => {
     const map = new Map<string,CompiledTilePlacement[]>();
     if(result.ok)for(const p of result.layout.placements){const group=map.get(p.tileAssetId)??[];group.push(p);map.set(p.tileAssetId,group);}
-    return [...map].map(([id,placements])=>({product:products.find(p=>p.id===id)!,placements}));
-  },[result,products]);
-  const message = groups.map(g=>errors[g.product.id]).filter(Boolean).join(" ") || null;
+    return [...map].map(([id,placements])=>({id,placements}));
+  },[result]);
+  const message = groups.map(g=>errors[g.id]).filter(Boolean).join(" ") || null;
   useEffect(()=>{setError(message);return()=>setError(null);},[message,setError]);
   const placement = result.ok ? result.layout.placements.find(p=>p.id===selected) : undefined;
   const outline = useMemo(()=>{
@@ -60,7 +60,7 @@ export function AdvancedFloor() {
     <mesh name="layout-grout" rotation={[-Math.PI/2,0,0]} receiveShadow>
       <planeGeometry args={[mmToM(surface.widthMm),mmToM(surface.heightMm)]}/><meshStandardMaterial color="#a6a39c" roughness={.94}/>
     </mesh>
-    {groups.map(g=><AssetBatch key={g.product.id} {...g} report={report}/>)}
+    {groups.map(g=><AssetBatch key={g.id} product={products.find(p=>p.id===g.id)!} placements={g.placements} report={report}/>)}
     {outline&&<lineSegments geometry={outline}><lineBasicMaterial color="#f7c66a" depthTest={false}/></lineSegments>}
   </group>;
 }
