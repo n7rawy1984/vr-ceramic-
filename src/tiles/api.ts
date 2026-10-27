@@ -16,7 +16,7 @@ export async function api<T>(path: string, method = "GET", data?: unknown): Prom
   } catch { throw new ApiError("Could not reach the tile service. Check your connection and retry.", 0); }
   let value;
   try { value = await response.json(); }
-  catch { throw new ApiError("Tile API is unavailable. For local development, start npm run dev:api as well as Vite.", response.status); }
+  catch { throw new ApiError("The tile service is temporarily unavailable. Please retry.", response.status); }
   if (!response.ok) throw new ApiError(value.error || "The request failed. Please retry.", response.status, value.cleanupReceipt);
   return value;
 }

@@ -42,6 +42,14 @@ Generate each admin value separately, for example `openssl rand -hex 32`. The co
 
 Do not put these values in React, Vite `define`, a public asset, URL query parameter, screenshot, issue, or chat message.
 
+### Temporary public presentation mode
+
+Set the server environment variable **`PUBLIC_DEMO_MODE=true`** for the presentation. In Vercel, configure it for the intended environment and create a deployment that uses it; locally, restart `npm run dev:api` after setting it in `.env.local`. Do not use a `VITE_` prefix. No deployment was performed for this change.
+
+Only the exact value `true` enables this exception. The session endpoint returns authenticated demo access before reading admin configuration, and library endpoints accept visitors without a cookie or login. Every visitor can upload, list, apply and delete library assets while enabled. Existing Supabase URL/server credentials remain required for storage operations; admin code/session-secret configuration is not required in this mode. Upload receipts remain signed using a domain-separated MAC with the existing server-only Supabase key. Storage, schema, signed URLs and same-origin checks remain unchanged.
+
+Remove the flag or set it to `false` and restart/redeploy to restore the existing protected flow, including its admin configuration requirements. A session/API failure stays inside My Tiles with retry/close controls; the showroom, built-in materials and Floor Design remain available. Local fixture tests verified demo upload/library/Apply, recovery from a simulated session-function 500, and protected behavior with the flag off. These checks do not establish the cause of the reported live Vercel function failure or verify a deployed fix.
+
 ## 4. Local development
 
 Use **Node 24** (the existing development environment uses 24.14.1). No global Vercel CLI or Supabase SDK is required.

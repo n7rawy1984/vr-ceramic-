@@ -1,0 +1,24 @@
+/** Run only against a PUBLIC_DEMO_MODE=true frontend/API using the isolated fixture. */
+import assert from 'node:assert/strict';import{browser}from'./cdp.mjs';
+const {send,evaluate,until,button,field,shot,listeners,close}=await browser();const errors=[],logins=[];
+listeners.push(e=>{if(e.method==='Runtime.exceptionThrown')errors.push(e.params.exceptionDetails.exception?.description);if(e.method==='Network.requestWillBeSent'&&e.params.request.url.includes('/api/admin/login'))logins.push(e.params.request.url)});
+const settle=()=>evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+const library=async()=>{await button('My Tiles · Add Tile');await settle();await until(`!!document.querySelector('dialog[open]')&&!document.body.innerText.includes('Opening your library')`)};
+try{
+ await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await send('Page.navigate',{url:process.argv[2]??'http://localhost:5187'});await until(`!!document.querySelector('.hud')&&!document.querySelector('.loading-screen')`);
+ await evaluate(`(async()=>{const es=performance.getEntriesByType('resource');const m=await import(es.find(e=>e.name.includes('/@react-three_fiber.js?')).name);window.r=[...m._roots.values()][0].store;const dpr=r.getState().setDpr;r.setState({setDpr:()=>dpr(.5)});r.getState().setDpr(.5)})()`);
+ assert.deepEqual(await evaluate(`fetch('/api/admin/session').then(r=>r.json())`),{authenticated:true,demoMode:true});
+ await library();await until(`!!document.querySelector('.tile-upload-form')`);assert.equal(await evaluate(`!!document.querySelector('.tile-access-form')`),false);assert(await evaluate(`document.body.innerText.includes('Demo mode')`));
+ const fixture=await evaluate(`fetch('/api/tile-assets/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mimeType:'image/png',fileSize:64,filename:'probe.png'})}).then(r=>r.json()).then(v=>v.uploadUrl?.startsWith('http://127.0.0.1:54329/'))`);assert(fixture,'No live writes');
+ await evaluate(`(async()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#baa582';x.fillRect(0,0,64,64);x.fillStyle='#ddd';x.fillRect(4,4,56,3);const blob=await new Promise(r=>c.toBlob(r));const dt=new DataTransfer();dt.items.add(new File([blob],'demo.png',{type:'image/png'}));const e=document.querySelector('input[type=file]');e.files=dt.files;e.dispatchEvent(new Event('change',{bubbles:true}))})()`);
+ await field('Tile name','Public demo tile');await field('Width (cm)',60);await field('Height (cm)',60);await until(`!!document.querySelector('.tile-image-preview img')&&!document.querySelector('.tile-upload-form button[type=submit]').disabled`);await button('Save tile');await until(`!!document.querySelector('.saved-tile-card')`);await button('Apply');await until(`!document.querySelector('dialog[open]')`);assert.equal(logins.length,0);
+ // Simulate the exact kind of platform failure that executes before application code.
+ await send('Fetch.enable',{patterns:[{urlPattern:'*/api/admin/session',requestStage:'Request'}]});
+ listeners.push(e=>{if(e.method==='Fetch.requestPaused')void send('Fetch.fulfillRequest',{requestId:e.params.requestId,responseCode:500,responseHeaders:[{name:'Content-Type',value:'text/plain'}],body:Buffer.from('FUNCTION_INVOCATION_FAILED').toString('base64')})});
+ await library();await until(`document.body.innerText.includes('My Tiles is temporarily unavailable')`);assert.equal(await evaluate(`!!document.querySelector('.tile-access-form')`),false);await shot('ceramic-public-demo-unavailable');await button('Close');
+ await button('Floor Design');await until(`!!document.querySelector('.floor-design-panel')`);await field('Main field tile','ceramic-02');await field('Room width (m)',5.4);await field('Room length (m)',7.2);await button('Apply Design');await until(`r.getState().scene.getObjectByName('compiled-floor')?.userData.placementCount>0`);await button('Layout');await until(`!!document.querySelector('.plan-canvas-wrap canvas')`);await shot('ceramic-public-demo-offline-layout');await button('Room');
+ // Retry recovers in-place once the backend is available again, still without login.
+ await library();await until(`document.body.innerText.includes('My Tiles is temporarily unavailable')`);await send('Fetch.disable');await button('Retry My Tiles');await until(`!!document.querySelector('.tile-upload-form')&&!!document.querySelector('.saved-tile-card')`);assert.equal(logins.length,0);await button('Close');
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({publicBypass:true,noLoginRequests:true,uploadLibraryApply:true,session500Contained:true,builtinDesignAndLayoutOffline:true,retryRecovered:true,errors},null,2));
+}finally{close();}

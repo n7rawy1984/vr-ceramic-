@@ -2,6 +2,8 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 import { HttpError, body, endpoint, json, sameOrigin } from "./http.ts";
 const COOKIE = "tile_admin";
 const SESSION_SECONDS = 8 * 60 * 60;
+/** Server-only, explicit temporary presentation switch. */
+export const publicDemoMode = () => process.env.PUBLIC_DEMO_MODE === "true";
 function config() {
   const code = process.env.ADMIN_ACCESS_CODE;
   const secret = process.env.ADMIN_SESSION_SECRET;
@@ -9,6 +11,13 @@ function config() {
   return { code, secret };
 }
 function signature(payload: string) {
+  if (publicDemoMode()) {
+    // Receipts still require a stable server-only MAC across Vercel instances.
+    // Domain separation makes demo receipts invalid in protected mode.
+    const key=process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if(!key)throw new HttpError(503,"Tile storage is not configured. See the setup guide.");
+    return createHmac("sha256",key).update("public-tile-demo-receipt\0").update(payload).digest("base64url");
+  }
   const { secret, code } = config();
   return createHmac("sha256", secret).update(code).update("\0").update(payload).digest("base64url");
 }
@@ -33,6 +42,7 @@ function sessionToken(request: Request) {
 }
 export function requireAdmin(request: Request) {
   sameOrigin(request);
+  if (publicDemoMode()) return;
   if (!verify(sessionToken(request), "session")) throw new HttpError(401, "Your access session has expired. Enter the access code again.");
 }
 function cookie(value: string, maxAge: number) {
@@ -45,6 +55,7 @@ const attempts = new Map<string, { count: number; until: number }>();
 export const adminLogin = (request: Request) => endpoint(async () => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
   sameOrigin(request);
+  if (publicDemoMode()) return json({ authenticated: true, demoMode: true });
   const { code } = config();
   const key = createHash("sha256").update(request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local").digest("hex");
   const now = Date.now();
@@ -64,11 +75,13 @@ export const adminLogin = (request: Request) => endpoint(async () => {
 export const adminSession = (request: Request) => endpoint(async () => {
   if (request.method !== "GET") return json({ error: "Method not allowed." }, 405, { Allow: "GET" });
   sameOrigin(request);
+  if (publicDemoMode()) return json({ authenticated: true, demoMode: true });
   config();
   return json({ authenticated: !!verify(sessionToken(request), "session") });
 });
 export const adminLogout = (request: Request) => endpoint(async () => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405, { Allow: "POST" });
   requireAdmin(request);
+  if (publicDemoMode()) return json({ authenticated: true, demoMode: true }, 200, { "Set-Cookie": cookie("", 0) });
   return json({ authenticated: false }, 200, { "Set-Cookie": cookie("", 0) });
 });

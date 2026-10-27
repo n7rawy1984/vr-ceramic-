@@ -15,7 +15,10 @@ function TileImage({ tile }: { tile: TileAssetView }) {
 export function TileLibrary({ open, onClose }: { open: boolean; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [authenticated, setAuthenticated] = useState(false);
-  const [checking, setChecking] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [demoMode,setDemoMode]=useState(false);
+  const [unavailable,setUnavailable]=useState(false);
+  const [sessionAttempt,setSessionAttempt]=useState(0);
   const [code, setCode] = useState("");
   const [tiles, setTiles] = useState<TileAssetView[]>([]);
   const [error, setError] = useState("");
@@ -41,15 +44,17 @@ export function TileLibrary({ open, onClose }: { open: boolean; onClose: () => v
     const element = dialog.current;
     element?.showModal();
     let active = true;
-    setChecking(true); setError("");
-    api<{ authenticated: boolean }>("admin/session").then(async value => {
+    setChecking(true); setUnavailable(false); setError("");
+    api<{ authenticated: boolean; demoMode?: boolean }>("admin/session").then(async value => {
       if (!active) return;
+      if(typeof value.authenticated!=="boolean")throw Error("Tile service unavailable.");
+      setDemoMode(value.demoMode===true);
       setAuthenticated(value.authenticated);
       if (value.authenticated) await load();
       else { setProducts([]); setTiles([]); }
-    }, reason => { if (active) setError(reason.message); }).finally(() => { if (active) setChecking(false); });
-    return () => { active = false; element?.close(); };
-  }, [open, load, setProducts]);
+    }).catch(() => { if (active) {setUnavailable(true);setError("My Tiles is temporarily unavailable. Close this panel to continue designing.");} }).finally(() => { if (active) setChecking(false); });
+    return () => { active = false; element?.close(); setChecking(true); };
+  }, [open, load, setProducts, sessionAttempt]);
   useEffect(() => {
     if (!authenticated) return;
     // Renew signed image access while the component is mounted. Reopening the
@@ -105,8 +110,8 @@ export function TileLibrary({ open, onClose }: { open: boolean; onClose: () => v
   if (!open) return null;
   return createPortal(<dialog ref={dialog} className="tile-library-dialog" aria-labelledby="tile-library-title" onCancel={event => { event.preventDefault(); if (!busy && !uploadBusy) onClose(); }}>
     <header className="tile-library-header"><div><span className="tile-eyebrow">Your materials</span><h2 id="tile-library-title">Tile Library</h2></div><button type="button" className="hud-button" disabled={busy || uploadBusy} onClick={onClose} aria-label="Close tile library">Close</button></header>
-    {checking ? <p role="status">Opening your library…</p> : authenticated ? <>
-      <div className="tile-library-toolbar"><span>Uploaded Tiles</span><div><button className="hud-button" disabled={busy || uploadBusy || loading} onClick={() => void load()}>{loading ? "Refreshing…" : "Refresh library"}</button><button className="hud-button" disabled={busy || uploadBusy} onClick={logout}>Lock library</button></div></div>
+    {checking ? <p role="status">Opening your library…</p> : unavailable ? <button className="hud-button" onClick={()=>setSessionAttempt(v=>v+1)}>Retry My Tiles</button> : authenticated ? <>
+      <div className="tile-library-toolbar"><span>Uploaded Tiles{demoMode&&<small> · Demo mode</small>}</span><div><button className="hud-button" disabled={busy || uploadBusy || loading} onClick={() => void load()}>{loading ? "Refreshing…" : "Refresh library"}</button>{!demoMode&&<button className="hud-button" disabled={busy || uploadBusy} onClick={logout}>Lock library</button>}</div></div>
       <div className="tile-library-columns">
         <TileUploadForm disabled={busy || loading} onSaved={tile => publish([tile, ...tiles.filter(t => t.id !== tile.id)])} onExpired={expire} onBusy={setUploadBusy} />
         <section className="saved-tile-library" aria-label="Saved uploaded tiles">

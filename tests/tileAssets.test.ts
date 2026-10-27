@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { adminLogin, adminLogout, adminSession, sign } from "../server/admin.ts";
+import { adminLogin, adminLogout, adminSession, sign, verify, requireAdmin } from "../server/admin.ts";
 import { tileAssets, uploadUrl, deleteTile } from "../server/tileAssets.ts";
 import { createSupabaseFixture } from "./fixtures/supabaseFixture.ts";
 import { cmToMm, mmToM } from "../src/utils/units.ts";
@@ -31,7 +31,7 @@ async function save(receipt: string, extra: Record<string, unknown> = {}) {
 }
 before(async () => {
   Object.assign(process.env, { ADMIN_ACCESS_CODE: code, ADMIN_SESSION_SECRET: "fixture-session-secret-at-least-32-characters", SUPABASE_URL: "https://fixture.supabase.co", SUPABASE_SECRET_KEY: fixture.secret });
-  delete process.env.NODE_ENV; delete process.env.VERCEL;
+  delete process.env.NODE_ENV; delete process.env.VERCEL; delete process.env.PUBLIC_DEMO_MODE;
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => fixture.fetch(input instanceof Request ? input : new Request(input, init))) as typeof fetch;
   const logged = await adminLogin(request("admin/login", "POST", { code }));
   cookie = logged.headers.get("set-cookie")!.split(";")[0];
@@ -141,4 +141,46 @@ test("legacy service-role fallback stays server-side and uses Bearer only for th
     assert.equal(observed!.get("authorization"), "Bearer fixture-legacy-jwt");
     assert.ok(!(await response.text()).includes("fixture-legacy-jwt"));
   } finally { globalThis.fetch = prior; process.env.SUPABASE_SECRET_KEY = key; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
+});
+
+
+test("public demo session/guards bypass missing admin configuration before reading cookies or secrets", async () => {
+  const prior={...process.env};
+  try {
+    process.env.PUBLIC_DEMO_MODE="true";
+    for(const key of ["ADMIN_ACCESS_CODE","ADMIN_SESSION_SECRET","SUPABASE_SECRET_KEY","SUPABASE_SERVICE_ROLE_KEY"])delete process.env[key];
+    const response=await adminSession(request("admin/session","GET",undefined,{cookie:"tile_admin=malformed.token"}));
+    assert.equal(response.status,200);assert.deepEqual(await response.json(),{authenticated:true,demoMode:true});
+    assert.equal(response.headers.get("cache-control"),"no-store");assert.equal(response.headers.get("set-cookie"),null);
+    assert.doesNotThrow(()=>requireAdmin(request("tile-assets","GET",undefined,{cookie:""})));
+    assert.equal((await adminLogin(request("admin/login","POST",undefined,{cookie:""}))).status,200);
+    assert.equal((await adminLogout(request("admin/logout","POST",{}, {cookie:""}))).status,200);
+    assert.equal((await uploadUrl(request("tile-assets/upload-url","POST",{}, {cookie:"",origin:"https://evil.test"}))).status,403);
+  } finally {process.env=prior;}
+});
+
+test("public demo supports signed upload/list/apply adapter/delete without login or admin keys; protected mode rejects demo receipts", async () => {
+  const prior={...process.env},previousCookie=cookie;let receipt="";
+  try {
+    process.env.PUBLIC_DEMO_MODE="true";delete process.env.ADMIN_ACCESS_CODE;delete process.env.ADMIN_SESSION_SECRET;cookie="";
+    receipt=await reserve();const response=await save(receipt);assert.equal(response.status,201);
+    const {tile}=await response.json() as {tile:TileAssetView};assert.equal(tileToProduct(tile).physicalSizeMm!.width,600);
+    assert.equal((await tileAssets(request("tile-assets"))).status,200);assert(tile.imageUrl);
+    assert.equal((await deleteTile(request(`tile-assets/${tile.id}`,"DELETE",{}))).status,200);
+    assert(!fixture.tiles.has(tile.id));assert(!fixture.files.has(tile.storage_path));
+  } finally {process.env=prior;cookie=previousCookie;}
+  assert.equal(verify(receipt,"upload"),null,"Demo receipts cannot cross into protected mode");
+  assert.equal((await tileAssets(request("tile-assets","GET",undefined,{cookie:""}))).status,401);
+});
+
+test("only exact true enables public demo; absent/false preserve protected login/session flow", async () => {
+  const prior={...process.env};
+  try {
+    for(const flag of [undefined,"false","TRUE","1",""]){
+      if(flag===undefined)delete process.env.PUBLIC_DEMO_MODE;else process.env.PUBLIC_DEMO_MODE=flag;
+      assert.deepEqual(await (await adminSession(request("admin/session","GET",undefined,{cookie:""}))).json(),{authenticated:false});
+      assert.equal((await tileAssets(request("tile-assets","GET",undefined,{cookie:""}))).status,401);
+      assert.equal((await adminLogin(request("admin/login","POST",{code:"wrong"},{ip:`test-${flag}`}))).status,401);
+    }
+  } finally {process.env=prior;}
 });
