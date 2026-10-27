@@ -44,6 +44,14 @@ Do not put these values in React, Vite `define`, a public asset, URL query param
 
 ### Temporary public presentation mode
 
+For a presentation independent of the API, set **`VITE_PUBLIC_DEMO_MODE=true`** in the frontend build environment and rebuild. In Vercel, set it for the intended environment before creating the deployment. No deployment was performed here. This public boolean contains no credentials; never prefix Supabase credentials with `VITE_`.
+
+This mode opens **My Tiles** immediately without session, login or tile API requests. JPG/PNG/WebP uploads use the existing preview, crop/rotate, physical dimensions, material and finish controls. Prepared images have browser-local object URLs; metadata stays in memory and uses the same TileAsset adapter and layout pipeline. Tiles survive panel close/reopen and catalog remounts, work independently in Main Field, Center Frame and Center, and disappear on page refresh. Deleted tile URLs are revoked; the browser releases remaining URLs with the document. No localStorage, IndexedDB or backend persistence is introduced. The only session note is “Demo uploads are kept for this session.”
+
+Omit the flag or set it to `false` and rebuild to use the existing server-backed library. The separate server flag below must also be absent/false to require protected admin access. Changing a Vite environment variable requires a new frontend build; restarting a function alone cannot change this browser mode.
+
+### Optional server-backed public access
+
 Set the server environment variable **`PUBLIC_DEMO_MODE=true`** for the presentation. In Vercel, configure it for the intended environment and create a deployment that uses it; locally, restart `npm run dev:api` after setting it in `.env.local`. Do not use a `VITE_` prefix. No deployment was performed for this change.
 
 Only the exact value `true` enables this exception. The session endpoint returns authenticated demo access before reading admin configuration, and library endpoints accept visitors without a cookie or login. Every visitor can upload, list, apply and delete library assets while enabled. Existing Supabase URL/server credentials remain required for storage operations; admin code/session-secret configuration is not required in this mode. Upload receipts remain signed using a domain-separated MAC with the existing server-only Supabase key. Storage, schema, signed URLs and same-origin checks remain unchanged.

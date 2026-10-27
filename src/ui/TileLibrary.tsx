@@ -6,6 +6,8 @@ import { tileToProduct } from "../tiles/materialAdapter";
 import { mmToCm } from "../utils/units";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
 import { TileUploadForm } from "./TileUploadForm";
+import { clientDemoMode } from "../tiles/demoMode";
+import { DemoTileLibrary } from "./DemoTileLibrary";
 function TileImage({ tile }: { tile: TileAssetView }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   useEffect(() => { setFailedUrl(null); }, [tile.imageUrl, tile.imageUrlExpiresAt]);
@@ -13,6 +15,9 @@ function TileImage({ tile }: { tile: TileAssetView }) {
   return <img src={tile.imageUrl} alt={tile.name} referrerPolicy="no-referrer" onError={() => setFailedUrl(tile.imageUrl)} />;
 }
 export function TileLibrary({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return clientDemoMode ? <DemoTileLibrary open={open} onClose={onClose} /> : <ProtectedTileLibrary open={open} onClose={onClose} />;
+}
+function ProtectedTileLibrary({ open, onClose }: { open: boolean; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);

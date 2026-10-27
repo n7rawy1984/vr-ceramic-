@@ -3,6 +3,8 @@ import { FINISHES, MATERIAL_TYPES, validDimensionMm, validImage, type TileAssetV
 import { cmToMm } from "../utils/units";
 import { api, ApiError, type SavedTileResponse } from "../tiles/api";
 import { FULL_CROP, prepareImage } from "../tiles/prepareImage";
+import { clientDemoMode } from "../tiles/demoMode";
+import { saveDemoTile } from "../tiles/demoLibrary";
 
 type Prepared = { blob: Blob; url: string; file: File; crop: CropData; rotation: number };
 export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false }: {
@@ -53,6 +55,14 @@ export function TileUploadForm({ onSaved, onExpired, onBusy, disabled = false }:
     if (!canSave || !prepared || submitting.current) return;
     submitting.current = true; setBusy(true); onBusy(true); setError("");
     try {
+      if (clientDemoMode) {
+        const tile = saveDemoTile({ blob: prepared.blob, name, filename: file!.name, widthMm: cmToMm(Number(width)), heightMm: cmToMm(Number(height)), materialType: material, finish, rotation, crop: crop === FULL_CROP ? null : crop });
+        onSaved(tile);
+        setName(""); setFile(null); setCrop(FULL_CROP); setRotation(0); setCropOpen(false);
+        if (inputRef.current) inputRef.current.value = "";
+        setPhase("Ready · tile saved. Apply it from your library.");
+        return;
+      }
       let receipt = reservation.current;
       if (!receipt || receipt.blob !== prepared.blob || receipt.expiresAt <= Date.now()) {
         setPhase("Preparing upload…");
