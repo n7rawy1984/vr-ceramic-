@@ -8,3 +8,5 @@ export function cmToMm(cm: number): number { return Number((cm * 10).toFixed(3))
 export function mmToCm(mm: number): number { return mm / 10; }
 /** Canonical millimeters → scene meters, only at the rendering boundary. */
 export function mmToM(mm: number): number { return mm / 1000; }
+/** Scene-authored room meters → canonical domain millimeters, at the surface adapter. */
+export function mToMm(m: number): number { return Number((m * 1000).toFixed(3)); }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FLOOR_CERAMICS, getProductById } from "../catalog/materials";
 import type { MaterialFinish } from "../catalog/types";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
+import { useFloorDesignStore } from "../state/useFloorDesignStore";
 import { TileLibrary } from "./TileLibrary";
 import { CeramicThumbnail } from "./CeramicThumbnail";
 
@@ -18,6 +19,8 @@ const FINISH_LABEL: Record<MaterialFinish, string> = {
  * floor — the actual product being demonstrated — stays the visual focus.
  * Collapses to a small edge tab so it can be fully cleared from view. */
 export function CeramicCatalog() {
+  const designEnabled = useFloorDesignStore(s=>s.enabled);
+  const simpleMaterial = useFloorDesignStore(s=>s.setEnabled);
   const uploadedProducts = useConfiguratorStore((s) => s.uploadedProducts);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const selectedFloorId = useConfiguratorStore((s) => s.selectedFloorId);
@@ -76,13 +79,15 @@ export function CeramicCatalog() {
       {previous && (
         <button
           className={`hud-button compare-button${compareActive ? " active" : ""}`}
+          disabled={designEnabled}
           onClick={toggleCompare}
-          title={`Compare with ${previous.name}`}
+          title={designEnabled ? "Use Simple material mode to compare floor materials." : `Compare with ${previous.name}`}
         >
           {compareActive ? `Comparing with ${selected.name}` : `Compare with ${previous.name}`}
         </button>
       )}
 
+      {designEnabled&&<div className="catalog-design-note">Floor Design is active. Set its tiles in the design panel. <button className="hud-button" onClick={()=>simpleMaterial(false)}>Simple material / Compare</button></div>}
       <button className="hud-button tile-library-button" onClick={() => setLibraryOpen(true)}>My Tiles · Add Tile</button>
       <div className="catalog-cards">
         {FLOOR_CERAMICS.map((product) => {

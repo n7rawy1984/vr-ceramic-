@@ -1,11 +1,13 @@
+import { useRoom } from "./useRoom";
 import { useEffect, useMemo } from "react";
 import { MeshStandardMaterial } from "three";
 import { getProductById, FLOOR_CERAMICS } from "../catalog/materials";
 import { useTiledCeramicMaterial } from "../materials/useTiledCeramicMaterial";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
-import { ROOM } from "./roomConfig";
+
 
 export function CeramicFloor() {
+  const ROOM = useRoom();
   const loadingMaterial = useMemo(() => new MeshStandardMaterial({ color: "#c6c6c6", roughness: 0.9 }), []);
   useEffect(() => () => loadingMaterial.dispose(), [loadingMaterial]);
   const uploadedProducts = useConfiguratorStore((s) => s.uploadedProducts);

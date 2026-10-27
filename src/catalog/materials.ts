@@ -1,4 +1,4 @@
-import type { MaterialProduct } from "./types";
+import type { MaterialProduct } from "./types.ts";
 
 /**
  * Demo product catalog. This is the only place ceramic products are defined —

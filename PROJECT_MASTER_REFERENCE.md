@@ -1,8 +1,8 @@
 # PROJECT MASTER REFERENCE
 
-Audit date: **2026-10-25 (Asia/Dubai)**. Repository: `/home/nagham/vr-ceramic-configurator`.
+Initial audit: **2026-10-25 (Asia/Dubai)**. Last implementation update: **2026-10-27**. Repository: `/home/nagham/vr-ceramic-configurator`.
 
-**Status: official master reference. Milestone 1 remains implemented. Milestone 2 — Online Tile Upload is implemented locally and checked with automated server tests and a browser against a Supabase-compatible test fixture. At that verification Supabase was not configured. The user now reports Milestone 2 live testing; this XR maintenance task does not independently reverify the live service or deployment. Setup instructions remain in docs/ONLINE_TILE_SETUP.md. XR exit maintenance is recorded in §12. Milestone 3/layout engineering is not authorized.**
+**Status: official master reference. Milestones 1/2 and the XR lifecycle fix are checkpoint `1c3a0b3` (clean at the start of the original M3 implementation). Milestone 3 — Geometric Tile Layout Engine is now implemented: Straight + Field + Center Frame + Center, one pure mm compiler, synchronized Canvas plan and grouped 3D geometry. Numeric tests, fixture browser acceptance, read-only live uploaded-asset rendering and two emulator enter/exit cycles were verified. Draft editing and atomic Apply Design are verified in §17B; geometry details and limits are in §17A and docs/GEOMETRIC_LAYOUT.md. Running Bond, Milestone 4 and project persistence are not authorized. No commit, push or deployment in this task.**
 
 Authority:
 
@@ -12,11 +12,11 @@ Authority:
 4. Historical `PROJECT_HANDOFF.md` is retained for history but is superseded wherever this master reference explicitly disagrees.
 5. Future roadmap concepts are not implemented until verified in source/runtime.
 
-Implementation findings began with the read-only audit at `19be60738a919666d5a03c05ee33cbc31fb58ce9` and now include the uncommitted Milestone 1 and Milestone 2 working-tree changes described below. The unchanged draft preserves the original findings, including the wall/camera defects corrected in Milestone 1. Browser checks use isolated headless Chrome/software WebGL, not Quest hardware. Milestone 2 adds server-only Supabase integration and a single-operator access gate; fixture verification must not be reported as live online acceptance. Operational deployment information below is explicitly attributed to the user.
+Implementation findings began with the read-only audit at `19be60738a919666d5a03c05ee33cbc31fb58ce9` and include Milestones 1/2 plus XR cleanup, subsequently committed by the user as checkpoint 1c3a0b3. Milestone 3 changes are now uncommitted in the working tree. The unchanged draft preserves the original findings, including the wall/camera defects corrected in Milestone 1. Browser checks use isolated headless Chrome/software WebGL, not Quest hardware. Milestone 2 adds server-only Supabase integration and a single-operator access gate; fixture verification must not be reported as live online acceptance. Operational deployment information below is explicitly attributed to the user.
 
 # 1. Executive Summary
 
-Today this is a compact, working-code proof of concept for a single-room 3D ceramic showroom: one rectangular room, three demo floor products, physical texture repetition, shader grout, desktop navigation, previous-product comparison, and an implemented WebXR path. It is not yet an installation design or quantity calculation system. Built-in demo images are still absent and use procedural fallbacks. The new uploaded-tile path accepts actual images, persists canonical millimeter metadata in the Supabase integration, and adapts saved assets to the existing floor renderer. Automated browser checks used generated test images, not supplier photography.
+Today this is a single-room material viewer with an incremental geometric floor installation engine: one editable rectangular room (default 6×7 m; each side 4–12 m), demo/uploaded assets, legacy material Compare, preserved desktop/WebXR controls, and an opt-in Floor Design with Straight Main Field, Center Frame around the center and centered decorative area. Both the 2D plan and 3D installation consume one compiled placement result. It is not a purchasing/quantity, generic CAD or saved-project system. Built-in demo images remain absent and use procedural fallbacks. Existing live 600×600 mm uploaded assets were loaded/rendered read-only; Prestige from the earlier check was absent during refinement; generated fixture assets exercise the exact-format composition and upload/delete workflows.
 
 The primary product is becoming a **Professional Web Tile & Interior Finish Configurator**, desktop/web first. Engineers, designers, showrooms, and homeowners should be able to evaluate actual installation geometry before execution. VR/WebXR is **preserved, frozen future capability**, not the next investment area.
 
@@ -26,7 +26,7 @@ The existing separation of catalog, store, material hook, scene, and navigation 
 
 Future users should configure rooms, upload actual products with exact dimensions, assign surfaces, combine products and sizes, select patterns, design borders and center motifs, adjust grout/orientation/origin/alignment, and view matching professional 2D and realistic 3D results. Design alternatives and eventual quantities, cut pieces, waste, and technical output provide commercial value.
 
-The target is a real geometric installation, not one flattened image. Example: 60×60 cm field, 10 cm dark perimeter band, a separate inner frame, and a 120×120 cm decorative center. These are independent logical/geometric areas and placements. None of those zone or multi-product installation features exists today.
+The target is a real geometric installation, not one flattened image. Example: 60×60 cm outer Main Field, a10 cm dark Center Frame surrounding a120×120 cm decorative center. The room-perimeter implementation is retained internally, disabled/unexposed. Rectangular Field/Center Frame/Center and independent assets are now implemented in Milestone 3; broader combinations, arbitrary zones and patterns beyond Straight remain future work.
 
 # 3. Current Verified Stack
 
@@ -60,14 +60,16 @@ Historical read-only audit checks: local `tsc -p tsconfig.app.json --noEmit --in
 
 **Milestone 2 checks:** TypeScript, lint, native server tests and production build passed (existing large-chunk warnings remain). Browser checks exercise the real API handlers against the isolated test fixture; see §13. A production build verifies the frontend/type gates, not Vercel deployment or a real Supabase schema. Local development uses Node 24 with two processes; no global CLI or new package was installed.
 
+**Milestone 3 checks:** TypeScript, lint, production build and npm test pass. The native files contain 23 geometry/domain/render-boundary cases plus 11 existing server/security/adapter cases. Browser acceptance uses native CDP and isolated software WebGL; see §17A for fixture/live/XR distinctions. No dependency or lockfile change.
+
 # 4. Repository / Git Status
 
-- Branch: `main`, locally tracking `origin/main`, with no reported divergence at inspection. No fetch or network verification was performed.
+- Branch: `main`, locally tracking `origin/main`. Milestone 3 started with a clean working tree at `1c3a0b3` (“Complete visual foundation, online tile upload, and XR lifecycle fix”). The older status/history below is historical; M1/M2/XR files are now tracked in that checkpoint. M3 remains uncommitted. No fetch, branch mutation, commit, push or deploy was performed in M3.
 - Remote fetch/push: `https://github.com/n7rawy1984/vr-ceramic-.git`.
 - Initial tracked working tree: no changes. Initial untracked file: **`PROJECT_HANDOFF.md`**, already present before this audit; preserve it.
 - The original audit/finalization created the draft and master documents. Milestone 1 began with all three reference/handoff documents untracked and no tracked modifications. It modifies 10 tracked application files: `src/App.tsx`, `src/App.css`, `src/scene/DesktopControls.tsx`, `Furniture.tsx`, `Lighting.tsx`, `Room.tsx`, `Wall.tsx`, `roomConfig.ts`, `src/state/useConfiguratorStore.ts`, and `src/ui/Hud.tsx`; it also updates this still-untracked master. Historical handoff and draft remain unchanged. No commit, push, reset, or branch mutation was performed.
 - Milestone 2 preserves the pre-existing Milestone 1 work and adds API/server/shared models, SQL setup, a local API runner, native tests, upload/library UI, environment example and setup documentation. It modifies catalog/store/material integration and local proxy/typechecking configuration. No real .env.local, credentials, remote SQL execution, commit, push or deployment was created/performed. The user explicitly requested setup instructions because Supabase was not configured at that time.
-- Recent history contains two commits: `19be607` (“Polish VR ceramic showroom”), then `2458aa4` (“Initial VR ceramic configurator”). The actual latest diff removes dedication components and wiring (5 files, 160 deletions); its title is not evidence of separate material tuning changes. No dedication remains in current source.
+- At the original audit, history contained two commits: `19be607` (“Polish VR ceramic showroom”), then `2458aa4` (“Initial VR ceramic configurator”). The actual latest diff removes dedication components and wiring (5 files, 160 deletions); its title is not evidence of separate material tuning changes. No dedication remains in current source.
 - `node_modules/` and `dist/` exist and are ignored. Other ignore rules include logs, `*.local`, and editor artifacts.
 - Public assets: `public/favicon.svg` and `public/textures/ceramics/README.md` only. No actual ceramic JPGs, thumbnails, normal maps, or roughness maps.
 - The original audit found no backend/provider metadata or real environment file. Milestone 2 now includes root Vercel API entrypoints, server helpers and .env.example; a real .env.local was absent during that implementation. The user now has a local environment file; its contents were not read or printed in XR maintenance. **Vercel deployment: user-confirmed.** The user confirms that the current project has already been deployed to Vercel. Exact current deployment URL and deployed commit mapping were not independently verified during the repository audit or final review; no matching local deployment metadata was found. This user-confirmed operational fact supersedes the historical handoff's undeployed/Vercel-intended description. Local source/configuration evidence and operational confirmation remain distinct. No deployment action is authorized now.
@@ -87,8 +89,15 @@ Documentation inspected: root `README.md`, all of `PROJECT_HANDOFF.md`, `src/cat
 | `src/hooks/useOptionalTexture.ts` | URL-keyed auxiliary-map cache, optional normal/roughness loading |
 | `src/materials/useTiledCeramicMaterial.ts` | Legacy cm/uploaded mm → meters; material-owned map clones/repeats; unchanged grout shader; clone/material disposal |
 | `src/textures/` | generateCeramicCanvas; cached art and sky textures |
-| `src/scene/CeramicFloor.tsx` | Resolve displayed product, create material, render one floor plane |
-| `src/scene/roomConfig.ts` | ROOM, WALL_THICKNESS, DOOR, WINDOW, VR_SPAWN |
+| `src/scene/CeramicFloor.tsx` | Preserved simple material preview/Compare; one repeated plane |
+| `src/layout/` | Pure mm model/compiler, canonical editable room dimensions, asset/surface adapters, render-boundary buffers and one shared compiled-result provider |
+| `src/state/useFloorDesignStore.ts` | Applied room/installation, atomic Apply, active mode, plan presentation and selected placement; draft remains local to the form |
+| `src/scene/FloorSurface.tsx`, `AdvancedFloor.tsx` | Simple/compiled seam; merged per-asset body quads, physical grout and selection outline |
+| `src/scene/SceneActivity.tsx` | Demand background rendering only under the opaque plan; Room/XR restore normal loop |
+| `src/ui/FloorDesign.tsx`, `LayoutPlan.tsx` | Composition controls, validation, single-Canvas shared geometry plan/selection |
+| `tests/layout.test.ts`, `tests/browser/floor-design*.mjs` | Numeric geometry/render-boundary cases and fixture/desktop/XR acceptance |
+| `docs/GEOMETRIC_LAYOUT.md` | Binding M3 geometry contract, architecture, counts, verification and limits |
+| `src/scene/roomConfig.ts`, `useRoom.ts`, `src/layout/roomDimensions.ts` | Default preset/openings; canonical mm room bounds/surface; subscribed scene-meter adapter |
 | `src/scene/Room.tsx`, `Wall.tsx`, `Door.tsx`, `Window.tsx` | Floor-based wall convention, segmented openings, named overhead group, trim, door and glazing/backdrop |
 | `src/scene/Furniture.tsx` | Perimeter seating/tables, plant, art, subdued lamp; visible prop for Top presentation; rug removed |
 | `src/scene/Lighting.tsx` | Ambient/hemisphere, targeted directional shadow light, ceiling fill |
@@ -99,7 +108,7 @@ Documentation inspected: root `README.md`, all of `PROJECT_HANDOFF.md`, `src/cat
 | `src/ui/` | Hud, CeramicCatalog, CeramicThumbnail, LoadingScreen, ErrorBoundary |
 | `src/scene/ReadySignal.tsx` | First useFrame callback signals splash dismissal |
 | `src/config/brand.ts` | BRAND: “VR Interior Studio” / “Interactive Finishing Experience” |
-| `src/utils/units.ts` | cmToM (legacy), cmToMm/mmToCm UI boundaries, mmToM rendering boundary |
+| `src/utils/units.ts` | cmToM (legacy), cmToMm/mmToCm and mToMm UI boundaries, mmToM rendering boundary |
 | `shared/tileAsset.ts` | Persistent TileAsset/TileAssetView, format/size/dimension/crop contracts; no account/ownership fields |
 | `server/admin.ts`, `http.ts` | HMAC operator session/receipts, cookie/CSRF/body/error boundary |
 | `server/supabase.ts`, `tileAssets.ts` | Server-only REST adapter; upload signing, verification/save/list/delete/recovery |
@@ -112,7 +121,7 @@ Documentation inspected: root `README.md`, all of `PROJECT_HANDOFF.md`, `src/cat
 | `tests/` | Native server/adapter/security tests plus isolated test-only Storage/PostgREST fixture |
 | `src/App.css`, `src/index.css` | Overlay/responsive styling and full-window reset |
 
-`Furniture` and `Room` are siblings inside App's `Showroom`, not nested inside each other. There is no frontend router, saved-project model/service, installation compiler or 2D drawing subsystem. Persistence is limited to uploaded tile metadata/images through Supabase integration; its original acceptance checks used a fixture. The user now reports live testing; this task does not inspect real service data.
+`Furniture` and `Room` are siblings inside App's `Showroom`, not nested inside each other. There is no frontend router or saved-project backend. Milestone 3 adds a pure floor compiler and a dedicated 2D Canvas preview, described in §17A. Persistence is limited to uploaded tile metadata/images through Supabase integration; its original acceptance checks used a fixture. Read-only live metadata/image rendering was verified in M3; production writes and remote security policy were not audited.
 
 # 6. Current Data Flow
 
@@ -128,17 +137,19 @@ setSelectedFloorId → selected/previous ids + Compare → CeramicFloor
   → physical repeats + existing PBR/grout shader → one 6×7 m floor mesh
 ```
 
-Selection still begins at the first demo. Selecting a different id records the previous id and clears Compare; same-id selection is a no-op. getProductById now optionally resolves uploaded products after demos. Uploaded TileAsset metadata remains canonical mm; materialAdapter derives legacy display cm plus `physicalSizeMm`, then rendering explicitly converts mm to meters. There is no second placement algorithm or geometric layout model.
+Selection still begins at the first demo. Selecting a different id records the previous id and clears Compare; same-id selection is a no-op. getProductById now optionally resolves uploaded products after demos. Uploaded TileAsset metadata remains canonical mm; materialAdapter derives legacy display cm plus `physicalSizeMm`, then rendering explicitly converts mm to meters. The separate FloorInstallation references these same asset identities; compileLayout owns all placement geometry for active Floor Design (§17A).
 
 Compare still displays the previous product across the whole floor, without replacing the selected id. It now works across uploaded/demo sources as well as between demos; it is not split-screen or persisted Design A/B/C. Desktop labels follow the displayed product. Frozen VR rows still expose/select the three demos and highlight selectedFloorId; the shared renderer can consume a desktop-selected uploaded material without a separate VR model.
 
 `setUploadedProducts` reconciles selected/previous ids after reload/delete/lock. A removed uploaded selection resets to the first demo; a removed previous id clears Compare. Full TileAssetView rows live in the library UI, while the scene store receives derived MaterialProducts. Signing URLs are session memory, not database fields. The operator cookie can survive a page reload; chosen floor/design state is still memory and resets on reload. Reopening My Tiles reloads saved asset metadata.
 
+M3 adds a separate authoritative path: `Surface + FloorInstallation + resolved asset bodies → one memoized compileLayout result → LayoutPlan Canvas / AdvancedFloor merged geometry`. Installation references identities only; image/material resolution remains in the asset layer. See §17A for physical joints, zones, cuts and state boundaries.
+
 DesktopView/camera command tokens and VR fields remain as in Milestone 1. New `floorImageError` reports uploaded-image failures visibly; no procedural uploaded-image substitution occurs. Cookie sessions, metadata and images have separate lifetimes; see §17 and the setup guide.
 
 # 7. Current Room / Scene
 
-`ROOM` remains `living-room-01`, “Modern Living Room”, now **6 m X × 7 m Z × 3 m Y**, enlarged from 4×5×3 m. Nominal floor area is **42 m² versus 20 m² (+22 m², +110%)**. This is explicit metric geometry, not scene scaling: floor remains Y=0, now X ±3/Z ±3.5. The size supports a large continuous field for current 60×60, 60×120 and 80×80 products and future larger-format demonstrations while retaining realistic living-room context.
+`ROOM` is the default `living-room-01`, “Modern Living Room”, **6 m X × 7 m Z × 3 m Y**, enlarged from4×5×3 m in M1. M3 refinement adds editable runtime room width/length, each4–12 m, stored canonically as mm and subscribed through useRoom by shell/floor/furniture/lights/controls/XR. The following exact6×7 dimensions describe the default preset; all boundary-relative lengths/positions update on Apply. No group scaling. Nominal floor area is **42 m² versus 20 m² (+22 m², +110%)**. This is explicit metric geometry, not scene scaling: floor remains Y=0, now X ±3/Z ±3.5. The size supports a large continuous field for current 60×60, 60×120 and 80×80 products and future larger-format demonstrations while retaining realistic living-room context.
 
 Wall thickness remains 0.12 m; door remains 0.9×2.1 m on +Z, now center X=-2.1 at Z=3.5. Window remains 1.8×1.4 m on +X at X=3, sill 0.9. No opening dimensions changed. Ceiling remains Y=3, inset plane Y=2.975, with coffer/crown/skirting derived from ROOM.
 
@@ -148,15 +159,15 @@ Wall thickness remains 0.12 m; door remains 0.9×2.1 m on +Z, now center X=-2.1 
 
 Furniture remains primitive geometry; none was added. Rug was removed (former radius 0.75 m, about 1.77 m² of rug footprint). Sofa and wall art now center X=-1.85 near the back-left perimeter; sofa Z=-2.85, base 1.7×0.85 m. Coffee table moved from `[-0.9,0,-0.6]` to `[-1.85,0,-1.85]` (top radius 0.42 m). Side table is now `[-0.55,0,-2.85]`, radius 0.22 m. Lamp follows the back-right corner `[2.5,0,-3]`; plant follows front-right `[2.55,0,3]`. This clusters context around the perimeter and frees the central field. The +22 m² area and removed rug footprint describe geometry, not an exact pixel/union measurement of visible floor.
 
-Room colors are neutralized to wall #f0f0ee, ceiling #f8f8f6, trim #dededb. Window glass/sky backdrop remain unchanged. Lighting in `Lighting.tsx`: white ambient 0.75; hemisphere white/#b6b6b6 at 0.65; white directional key 1.6 (previously warm 2.4), at `[5.2,4.4,1.5]`, scene-graph target `[0,0.4,0.2]`; white ceiling point 0.85, reach 10 m. Lamp point is now white 0.12, reach 2 m, with subdued white emission 0.08. This reduces warm cast, boosts neutral fill and retains dark-material detail without postprocessing. Only the directional key casts shadows: 1024² map, bounds ±7, near 1/far 20, expanded for the larger room. Material appearance remains representative, not color-calibrated.
+Room colors are neutralized to wall #f0f0ee, ceiling #f8f8f6, trim #dededb. Window glass/sky backdrop remain unchanged. Lighting in `Lighting.tsx`: white ambient 0.75; hemisphere white/#b6b6b6 at 0.65; white directional key 1.6 (previously warm 2.4), at `[5.2,4.4,1.5]`, scene-graph target `[0,0.4,0.2]`; white ceiling point 0.85, reach max(10,1.5×max(width,length)) m. Lamp point is now white 0.12, reach 2 m, with subdued white emission 0.08. This reduces warm cast, boosts neutral fill and retains dark-material detail without postprocessing. Only the directional key casts shadows: 1024² map, bounds ±7, near1/far40; dynamic shadow extent uses ±max(width,length), expanded for the larger room. Material appearance remains representative, not color-calibrated.
 
-Canvas keeps variance shadows, DPR [1,1.5], antialiasing and near 0.05/far 50. Physical repeats derive from the new ROOM values; the grout shader behavior is unchanged; the material hook now supports canonical uploaded mm sizes and owned texture transforms. VR_SPAWN automatically becomes `[0,0,2.6]`; existing teleport geometry automatically becomes 6×7 m. No XR locomotion/UI redesign occurred.
+Canvas keeps variance shadows, DPR [1,1.5], antialiasing and near0.05/far100. Physical repeats derive from the new ROOM values; the grout shader behavior is unchanged; the material hook now supports canonical uploaded mm sizes and owned texture transforms. VR_SPAWN automatically becomes `[0,0,2.6]`; existing teleport geometry automatically becomes 6×7 m. No XR locomotion/UI redesign occurred.
 
 # 8. Camera System
 
 `SceneControls` still swaps DesktopControls and VRLocomotion by XR session. Desktop navigation now separates named resting presets, an active tween ref, and deliberate free navigation; it no longer normalizes resting camera/target height every frame.
 
-`presetPose(view,aspect)` in `DesktopControls.tsx` defines:
+`presetPose(view,aspect,room)` in `DesktopControls.tsx` defines the following default 6×7 poses (Overview/Floor elevation scales by max(width/6,length/7); Top fits current dimensions; Detail remains a physical close-up):
 
 | View | Position (m) | Target (m) | FOV / behavior |
 |---|---|---|---|
@@ -166,7 +177,7 @@ Canvas keeps variance shadows, DPR [1,1.5], antialiasing and near 0.05/far 50. P
 | Detail | [0.65,1.15,1.8] | [0.1,0,0.5] | 48°; tile/grout close inspection, radius about 1.82 m |
 | Free | User-controlled | Short look target preserving direction | Drag look, WASD/arrows walk, wheel lens zoom |
 
-Top height H is `max(ROOM.length/2, ROOM.width/2/aspect) / tan(45°/2) * 1.22`, about 10.31 m at 1440×900; resize refits Top only. It is a perspective camera pointed nearly vertically with a tiny Z offset to avoid a pole singularity, not an orthographic technical renderer. Rotate/zoom/walk are locked in Top, with reversible overhead/furniture hiding (§7). Exact top-down floor coverage was visually checked at representative desktop/portrait widths.
+Top height H is `max(ROOM.length/2, ROOM.width/2/aspect) / tan(45°/2) * 1.22`, about 10.31 m at 1440×900; viewport resize refits Top; room dimension changes reframe the current view and invalidate its pre-resize saved return pose. It is a perspective camera pointed nearly vertically with a tiny Z offset to avoid a pole singularity, not an orthographic technical renderer. Rotate/zoom/walk are locked in Top, with reversible overhead/furniture hiding (§7). Exact top-down floor coverage was visually checked at representative desktop/portrait widths.
 
 All preset commands use 0.8 s cubic-eased position/target/FOV interpolation. During transitions, input is disabled, polar limits are relaxed, and **minDistance=maxDistance tracks the live camera-target distance**. Resting presets retain their actual radius; there is no universal tiny clamp. This preserves the historical macro-collapse fix. Resting non-Top presets permit orbit inspection with polar limits 0.15…π/2−0.05; free look permits 0.15…π−0.15.
 
@@ -176,11 +187,11 @@ Entering Floor/Top/Detail from room/free saves position, target, FOV and room/fr
 
 **Historical defect corrected:** the old unconditional frame-loop Y assignments overwrote the initial hero/downward view. Presets now rest unchanged; numerical settling/return/reset checks confirm this. The original wall/camera findings remain in the unchanged draft and historical reconciliation below.
 
-**Top View is only Milestone 1 visual inspection.** Milestone 3's dedicated 2D Layout Editor remains future work driven by shared installation/compiler geometry, with exact dimensions, selection, zones, grout, origin/alignment and technical overlays. It is not this camera preset.
+**Top View remains 3D camera inspection.** Milestone 3 adds a separate Layout Canvas preview driven by the shared compiler, with fit-to-view, piece selection/dimensions and Field/Center Frame/Center. It is not a CAD/drag editor; advanced authoring remains future work.
 
 # 9. Current Material System
 
-`CeramicFloor` renders **one PlaneGeometry(6,7)** with default normalized UVs, rotated -π/2 about X. It has one product/material, no per-tile meshes. A neutral loading material keeps the floor shell visible while the selected image loads; failures show an explicit UI error. With that rotation, increasing local plane V maps toward negative world Z. Repeat-derived grid origin is an implicit plane UV boundary, not an installation origin stored in application state.
+`CeramicFloor` renders **one room-sized PlaneGeometry** (default 6×7; dimensions from useRoom) with default normalized UVs, rotated -π/2 about X. It has one product/material, no per-tile meshes. A neutral loading material keeps the floor shell visible while the selected image loads; failures show an explicit UI error. With that rotation, increasing local plane V maps toward negative world Z. Repeat-derived grid origin is an implicit plane UV boundary, not an installation origin stored in application state.
 
 `cmToM(cm)=cm/100`. `useTiledCeramicMaterial` computes:
 
@@ -207,15 +218,15 @@ The three demo procedural styles/palettes remain unchanged. **product.baseColor 
 
 `onBeforeCompile` injects grout/variation into `<common>` and `<map_fragment>`. It hashes floor(vMapUv) for deterministic ±5% default brightness variation. Grout uses fract(vMapUv), distance to each cell edge, fwidth antialiasing, and an AO-like band; it changes diffuse color only. No recessed geometry, cut edge, thickness, or independent grout roughness/normal is generated.
 
-**Grout metrology concern:** groutWidth/tileDimension is used as the threshold on **each side** of an integer UV seam. Thus the ideal hard boundary spans about twice the nominal groutWidth across adjacent cells, before AA/bevel. All demo products declare 0.4 cm; that value should not be presented as a verified 4 mm physical joint. Resolve full-width vs half-width convention, tile-body vs pitch semantics, and tolerances before engineering layouts/quantities.
+**Legacy simple-preview grout metrology concern (not the M3 compiled convention):** groutWidth/tileDimension is used as the threshold on **each side** of an integer UV seam. Thus the ideal hard boundary spans about twice the nominal groutWidth across adjacent cells, before AA/bevel. All demo products declare 0.4 cm; that value should not be presented as a verified 4 mm physical joint. Resolve full-width vs half-width convention, tile-body vs pitch semantics, and tolerances before engineering layouts/quantities.
 
 The material hook clones loaded albedo/normal/roughness maps before applying UV transforms, then disposes those clones and each replaced material. This resolves the audited shared mutable-transform risk for multiple usages. Cached sources remain reusable and source-cache eviction disposes sources independently. Optional auxiliary-map loading still uses its existing URL cache; an expanded real PBR asset pipeline remains future work. No KTX2/atlas/multiple-face feature was added.
 
 Uploaded finish roughness is **polished 0.28 / satin 0.42 / honed 0.60 / matte 0.82**, via `UPLOAD_ROUGHNESS` in materialAdapter. Demo scalar values remain unchanged. Crop and image rotation are baked into prepared stored pixels, so uploaded textureRotationDeg stays 0 and does not rotate the grout grid. These are representative appearance controls, not calibrated finish measurements.
 
-**Renderer seam:** keep CeramicFloor/useTiledCeramicMaterial as the simple uniform preview path. Later introduce a surface-level rendering boundary inside Room that can consume compiled placements through a proposed `AdvancedTileRenderer` (not an existing file). Reuse asset loading/PBR concepts while isolating mutable transforms per material use. Use instancing/batching for compatible uncut tiles and separate clipped boundary geometry as appropriate after measurement. Renderer selection must not become an alternative placement algorithm: when the compiler exists, it owns placement for 2D, 3D and VR alike.
+**Renderer seam implemented in M3:** FloorSurface inside Room keeps CeramicFloor/useTiledCeramicMaterial as the simple uniform preview path and selects AdvancedFloor for active Floor Design. AdvancedFloor consumes shared compiled placements. Reuse asset loading/PBR concepts while isolating mutable transforms per material use. Use instancing/batching for compatible uncut tiles and separate clipped boundary geometry as appropriate after measurement. Renderer selection must not become an alternative placement algorithm: when the compiler exists, it owns placement for 2D, 3D and VR alike.
 
-The current single repeat grid cannot express independent multiple SKUs/sizes, border widths, inset subtraction, modular slots, individual rotations/faces, or explicit cut polygons. Extra texture masks alone would not supply the missing authoritative geometric data.
+The legacy single repeat grid cannot express independent zones/cuts. The M3 compiled path now supports rectangular field/Center Frame/center subtraction, independent assets and 0°/90° Straight bodies; modular patterns, arbitrary polygons and multiple faces remain absent. Extra texture masks alone would not supply the missing authoritative geometric data.
 
 # 10. Current Catalog/Data Model
 
@@ -249,13 +260,13 @@ The API validates dimensions (0.001–100,000 mm, max three decimal places), nam
 
 # 11. Current Desktop UX
 
-Milestone 1 Overview/Floor/Top/Detail/Back to Room/Reset and responsive demo catalog remain. The catalog adds **My Tiles · Add Tile**, opening a native modal Tile Library. No brand rename, Engineer Mode, room editor or technical 2D tool was added.
+Milestone 1 Overview/Floor/Top/Detail/Back to Room/Reset and responsive demo catalog remain. The catalog adds **My Tiles · Add Tile**, opening a native modal Tile Library. No brand rename or broader Engineer Mode was added. M3 now adds the focused Floor Design room-size/composition controls and dedicated Layout plan (§17A).
 
 Without an operator session, the modal asks for one access code. Valid sessions reveal Add Tile and saved uploaded cards; Lock library clears cookie/library state. Public demos remain usable without unlocking. No account signup, Supabase Auth, profiles or user permissions exist.
 
 Add Tile accepts JPG/PNG/WebP ≤5,000,000 bytes, name, cm width/height, Ceramic/Porcelain/Marble/Natural Stone/Decorative and Polished/Matte/Satin/Honed. Preview shows filename/physical size; rotation 0/90/180/270 and edge-trim crop sliders use browser canvas. Inputs validate name and positive dimensions. Progress states include preparing preview/upload, uploading, saving and Ready. Save prevents double submission and reuses a completed upload on metadata retry. Other busy actions/refresh disable the form; close/delete/apply are disabled while saving.
 
-Saved cards show image, name, dimensions, material/finish, Apply and confirmed Delete. Apply is offered only after save; image failures are visible and can be retried with Refresh. An uploaded/deleted/locked selection reconciles safely with demo/Compare state. There are no folders, SKU editor, search, pagination or multiple simultaneous floor materials.
+Saved cards show image, name, dimensions, material/finish, Apply and confirmed Delete. Apply is offered only after save; image failures are visible and can be retried with Refresh. An uploaded/deleted/locked selection reconciles safely with demo/Compare state. There are no folders, SKU editor, search or pagination. Multiple simultaneous materials now belong to Floor Design (§17A), not legacy material Compare.
 
 The modal stacks its form/library at mobile widths; 390×844 browser fixture capture was reviewed without horizontal overflow. Native dialog focus/inert behavior is used; background camera input is explicitly paused while it is open. The underlying catalog retains its existing ≤640 px bottom-sheet rules and initial open-state behavior.
 
@@ -269,11 +280,11 @@ The splash remains first-frame based, not asset-complete readiness. The floor no
 
 VRToolbar at local `[0.45,1.1,-0.5]` exposes Materials and Return to Start. VRMaterialPanel at `[0,1.25,-0.6]` renders catalog rows with RoundedBox/Text, onClick selection, and **procedural-only** 96 px swatches. VROnboarding at `[0,1.5,-0.95]` uses a store flag, surviving exit/reentry but not reload. All panels are origin children; they move/turn with rig, not head-look. Controller/hand routing relies on XR pointer infrastructure; hardware operation is unverified.
 
-Production emulation is explicitly disabled. Development emulation is now opt-in via `npm run dev:xr` or `VITE_XR_EMULATOR=true`; normal `npm run dev` passes `emulate: false`. Installed `@pmndrs/xr/dist/store.js` guards setup with `emulate != false` and contains the lazy emulator import. Emulator chunks remain in the Milestone 1 production build; the production guard is unchanged. No production network trace was captured. Milestone 2 did not edit XR, VR locomotion/panel files, room dimensions, lighting or furniture; uploaded materials feed the same floor renderer. No new VR UI/functionality was added. No Quest hardware validation exists in the handoff or Milestone 1; do not claim it now. Shared ROOM resizing automatically updates spawn to [0,0,2.6] and teleport target to 6×7 m. Showroom visibility explicitly restores overhead/furniture for active XR, regardless of desktop Top state. Milestone 2 left XR session setup, locomotion and VR UI source files unchanged; the subsequent authorized exit repair is recorded below.
+Production emulation is explicitly disabled. Development emulation is now opt-in via `npm run dev:xr` or `VITE_XR_EMULATOR=true`; normal `npm run dev` passes `emulate: false`. Installed `@pmndrs/xr/dist/store.js` guards setup with `emulate != false` and contains the lazy emulator import. Emulator chunks remain in the Milestone 1 production build; the production guard is unchanged. No production network trace was captured. Milestone 2 did not edit XR, VR locomotion/panel files, room dimensions, lighting or furniture; uploaded materials feed the same floor renderer. No new VR UI/functionality was added. No Quest hardware validation exists in the handoff or Milestone 1; do not claim it now. Current VRLocomotion subscribes through useRoom: spawn=[0,0,length/2−0.9] and teleport plane=width×length (default[0,0,2.6] and6×7). Showroom visibility explicitly restores overhead/furniture for active XR, regardless of desktop Top state. Milestone 2 left XR session setup, locomotion and VR UI source files unchanged; the subsequent authorized exit repair is recorded below.
 
 ### XR exit maintenance — 2026-10-26
 
-Authorized regression repair only; Milestone 3 remains unauthorized. `docs/XR_LIFECYCLE.md` contains installed-source evidence and the native CDP browser runner instructions.
+Historical XR regression repair scope: Milestone 3 was not authorized at that time. The subsequent explicit M3 request is implemented in §17A. `docs/XR_LIFECYCLE.md` contains installed-source evidence and the native CDP browser runner instructions.
 
 **Reproduced cause:** asynchronous Drei Text/font loading inside VRLocomotion had no local Suspense boundary. Suspension of the surrounding XR tree re-established the SDK camera-restoration effect while already in-session, losing its closure-local initialCamera. Camera-write tracing showed desktop → XR ArrayCamera on entry, then **no restoration write on exit**; R3F remained on the XR camera. ArrayCamera extends PerspectiveCamera, so the old desktop type guard accepted the wrong camera. A local Suspense boundary around VRLocomotion preserves that effect; the focused A/B trace now restores the original desktop camera UUID. SceneControls also waits for the original camera and non-presenting manager before mounting DesktopControls. Desktop teardown clears keys/tweens; desktop code does not acquire pointer capture, and the second cycle verified browser release of emulator pointer lock on canvas removal; existing listener removals and OrbitControls disposal remain.
 
@@ -297,7 +308,7 @@ Supabase/API/upload/schema/signed upload/physical tile dimensions/storage permis
 
 **Milestone 2 browser fixture checks:** invalid access code and unsupported/>5 MB files rejected; JPEG/PNG/WebP prepared/uploaded/saved/applied; 90°/270° image rotation and PNG crop metadata verified; 600×600, 600×1200 and 800×800 mm produce expected 6×7 m repeats; all three saved rows reload after page refresh through signed URLs. All four existing views, all three demos and Compare (including uploaded↔demo) pass; preset radii remain non-macro. Signed-image load failures are visible and recover after Refresh. Delete cancellation preserves data; confirmed deletion removes metadata/object and resets a selected uploaded floor safely. Cookie loss prompts unlock and blocks API access; re-unlock and Lock library work. Native modal/mobile captures were inspected; focused checks confirmed background navigation pauses while the dialog is open and the upload form disables during a pending Refresh. Tests use the same application API handlers against **local test-only** Storage/PostgREST, not a configured Supabase project.
 
-**Service verification history:** during original Milestone 2 verification the user had not configured Supabase and requested setup instructions. The user now reports live testing; this maintenance task does not independently verify the service or deployment. SQL was not executed remotely; no actual bucket/Data API permissions, live upload, production Vercel API routing or deployed commit mapping were verified. Follow `docs/ONLINE_TILE_SETUP.md`; do not equate test-fixture persistence with live Postgres/Storage proof. Quest hardware remains untested.
+**Historical M2/XR service verification (subsequent read-only M3 checks are in §17A):** during original Milestone 2 verification the user had not configured Supabase and requested setup instructions. The user now reports live testing; this maintenance task does not independently verify the service or deployment. SQL was not executed remotely; no actual bucket/Data API permissions, live upload, production Vercel API routing or deployed commit mapping were verified. Follow `docs/ONLINE_TILE_SETUP.md`; do not equate test-fixture persistence with live Postgres/Storage proof. Quest hardware remains untested.
 
 **Milestone 1 implemented and checked:** 6×7×3 m room; floor-based wall convention; perimeter seating/rug removal; neutral lighting; explicit room/floor/top/detail/free modes; live-radius/FOV transitions; reversible Top occlusion; saved return and Reset; responsive view controls. `npx tsc -b`, `npm run lint` and `npm run build` passed. Chunk-size warnings remain; no dependency installation or new test framework.
 
@@ -309,20 +320,20 @@ Supabase/API/upload/schema/signed upload/physical tile dimensions/storage permis
 
 **Implemented but not hardware tested:** immersive session entry, controller rays, hand selection, teleport, snap turn, in-world legibility/comfort, actual headset material appearance/performance. New audit has no physical test results.
 
-**Not implemented:** saved Project/room editor, commercial Product/Variant/SKU catalog, multiple faces/PBR-map uploads, zones, installation geometry, patterns/compiler, true cut tiles, 2D editor, simultaneous multi-SKU floor, persistent projects/design A/B/C, quantity/waste/pricing/PDF/share workflow, accounts/profiles/Supabase Auth or full admin dashboard. The limited upload backend and single-operator gate are implemented as above.
+**Not implemented:** saved Project/nonrectangular room editor, commercial Product/Variant/SKU catalog, multiple faces/PBR-map uploads, arbitrary polygon zones, patterns beyond Straight, CAD/drag editing, persistent projects/design A/B/C, quantity/waste/pricing/PDF/share workflow, accounts/profiles/Supabase Auth or full admin dashboard. Rectangular zones, geometric cuts/compiler, multi-asset floor and the 2D preview are now implemented in M3 (§17A). The limited upload backend and single-operator gate are implemented as above.
 
 # 14. Known Technical Constraints / Debt
 
-1. One global selected floor product; floor-only lookup and UI despite broad category union.
-2. One uniform repeated-texture plane; no tile identity/placement/cuts or zone coverage.
-3. No project/room geometry abstraction beyond one imported ROOM constant; hardcoded camera/furniture/light values limit simple resizing claims.
+1. Legacy Simple material uses one global selected/previous floor product. Floor Design has independent field/Center Frame/center asset references; no commercial catalog/category expansion.
+2. Simple mode remains one repeated plane. M3 adds deterministic visible placement/cut provenance and rectangular zone coverage; no arbitrary polygon/quantity engine.
+3. Rectangular room width/length is now canonical mm,4–12 m per side, with derived scene/camera/furniture/light/XR dimensions. No arbitrary room shape, opening editor or furniture-layout system.
 4. Upload/save/list/delete and dimension validation now exist, but metadata editing, original-image archive, saved projects and a versioned project schema do not.
-5. Native server/security/adapter tests now exist; browser checks remain session-local. No authoritative placement/clipping/zone numeric suite exists because the layout compiler is still future work. Lint/type success does not establish geometry or visual correctness.
+5. Native server/security tests plus 23 M3 geometry/domain/render-boundary cases and checked-in CDP browser runners now exist. Lint/type success does not establish geometry or visual correctness.
 6. Historical wall no-opening Y centering and unconditional walking normalization were corrected in Milestone 1 (§7–8); the draft preserves the original findings. New scene/camera changes still require visual regression checks.
 7. Shader grout width/pitch semantics, rotated rectangular layouts, and fragment-string compatibility need verification; shader depends on Three chunk names/vMapUv.
 8. Cached sources now remain immutable and material-owned clones isolate UV transforms; the main source cache is bounded/id+URL keyed. Optional-map cache expansion, large-library texture memory and future many-zone batching still need measurement/design.
 9. Uploaded image loading is browser-tested with generated fixtures; actual supplier photography/auxiliary maps and headset material fidelity remain unvalidated. VR swatches remain procedural/demo-only.
-10. Keyboard listeners remain global but filter editable fields/dialog events, clear keys on blur, and pause with the library modal. Dedicated engineering input tools and a technical 2D renderer remain future scope; Top is camera inspection only.
+10. Keyboard listeners remain global but filter editable fields/dialog events, clear keys on blur, and pause with the library modal. Broader CAD input tools remain future scope; the bounded Canvas plan is implemented, while Top stays 3D camera inspection.
 11. Splash is still first-frame rather than all-assets-ready. Upload progress, image errors and signed-access refresh now exist, but no broader scene asset-readiness barrier was added.
 12. No furniture collision for desktop or teleport destinations; do not describe rectangular movement bounds as obstacle/safety validation.
 
@@ -336,7 +347,7 @@ Desktop/web installation confidence is now primary because the user's target wor
 
 # 16. Target Future Architecture
 
-**Target architecture remains future design, except the minimal Milestone 2 TileAsset persistence/render adapter.** Project/Room-domain/Surface/Zones/Pattern/Installation/LayoutCompiler and multi-face commercial models below are not implemented. Existing scene ROOM is still a simple meter-based scene constant, not a project geometry editor.
+**The broader table remains future design.** M2 implements TileAsset persistence/render adaptation; M3 now implements a focused rectangular Surface, FloorInstallation, field/Center Frame/center model, Straight LayoutCompiler and shared render consumers (§17A). Generic Project editing, nonrectangular room authoring, arbitrary zones/patterns and multi-face commercial models remain absent. Focused rectangular room dimensions are canonical mm with derived scene geometry; ROOM remains its default preset.
 
 | Concept | Proposed responsibility |
 |---|---|
@@ -353,7 +364,7 @@ Desktop/web installation confidence is now primary because the user's target wor
 | 2D renderer | Draw compiler results, dimensions, selection and technical overlays |
 | 3D renderer | Visualize identical results using materials/geometry/batching |
 
-Evolve alongside current code: adapt static MaterialProduct entries into renderable assets while preserving a path to Product/Variant identity; separate authored installation data from UI/navigation store; introduce stable surface coordinates; preserve uniform preview while validating compiler parity. Avoid duplicating editable parameters across renderers. Exact schemas, persistence format, numeric precision policy and clipping library are future decisions, not approved dependencies.
+Evolve alongside current code: adapt static MaterialProduct entries into renderable assets while preserving a path to Product/Variant identity; separate authored installation data from UI/navigation store; introduce stable surface coordinates; preserve uniform preview while validating compiler parity. Avoid duplicating editable parameters across renderers. Broader commercial schemas, project persistence and general polygon clipping remain future decisions. The implemented rectangular M3 schema and numeric precision policy are specified in §17A; no clipping dependency was added.
 
 ### Product / Variant / Asset Compatibility Contract — Future Domain Architecture
 
@@ -367,11 +378,11 @@ An ad-hoc engineer upload can instead create a project-local TileAsset with imag
 
 ### Units & Coordinate-System Contract — Binding Before LayoutCompiler
 
-- UI may accept/display cm, mm or m. Uploaded TileAsset persistence now canonically uses millimeters. Future domain/layout calculations must use one canonical internal physical unit with explicit conversions; complete the Surface/layout contract before compiler implementation.
+- UI may accept/display cm, mm or m. Uploaded TileAsset persistence and the M3 domain/compiler use millimeters. Preserve explicit conversions and the Surface contract in §17A in future work.
 - Conversion occurs at defined input/import/display/export boundaries, not ad hoc inside renderers. Current catalog centimeters and scene meters describe existing code, not the final domain contract.
 - Every Surface has a stable local 2D coordinate system with documented origin, axes and orientation.
 - LayoutCompiler computes in surface-local coordinates. The 3D renderer transforms those coordinates into world space; dedicated 2D technical rendering consumes the same local coordinates.
-- Define numeric tolerance/epsilon policy explicitly before clipping and quantity calculations, including boundary comparisons and reconciliation. No final epsilon value or clipping library is selected by this document.
+- M3 uses 0.000001 mm epsilon and explicit axis-aligned rectangular intersection/subtraction/merge, without a third-party clipping package. Future polygons/quantity models need additional explicit policies; do not silently change the M3 contract.
 
 # 17. Tile Upload Implementation / Future Compatibility
 
@@ -389,13 +400,47 @@ Saved list responses contain one-hour signed read URLs, regenerated on reopen/Re
 
 Confirmed Delete removes row then object, compensating by restoring metadata if Storage fails. If restoration also fails, the UI retains an eight-hour signed cleanup receipt for retry; a lost/expired receipt or server interruption can require manual orphan cleanup. Abandoned/uncertain uploads can also leave private unreferenced objects. Supabase signed upload URLs last two hours independently of the app receipt; already issued signed URLs are bearer capabilities and are not revoked by app logout. Never store their URLs in the database.
 
-Future multiple faces, auxiliary-map upload, manufacturer/SKU management, project persistence and advanced image editing remain deferred. A saved tile library is not a saved installation. The layout compiler/grout engineering gate remains for Milestone 3.
+Future multiple faces, auxiliary-map upload, manufacturer/SKU management, project persistence and advanced image editing remain deferred. A saved tile library is not a saved installation. Milestone 3 now satisfies the body/full-joint/mm/rectangular-surface/compiler gate with the explicit contract in §17A. Purchasing/cut reuse and broader geometry remain future work.
+
+# 17A. Milestone 3 — refined composition and editable room (2026-10-27)
+
+**Preserved and evolved the uncommitted M3 work from checkpoint `1c3a0b3`.** The user corrected the primary composition to **outer Main Field → Center Frame → Center**, with independently obvious tile selectors and editable room dimensions. This supersedes the initial perimeter-border interpretation; it is not Milestone 4. Full contract, exact counts, files and verification: [docs/GEOMETRIC_LAYOUT.md](docs/GEOMETRIC_LAYOUT.md).
+
+**Canonical geometry:** room `{widthMm,lengthMm}` defaults 6000×7000, each side 4000–12000. Room and installation controls edit one local draft; Apply Design validates and commits them together. Empty/out-of-range values leave the applied design unchanged. Asset body sizes are immutable installation inputs, separate from center area/frame width. Full joint j is one gap; pitch=body+j. Local origin back-left, +X width,+Y toward door; world=[(x−width/2)/1000,.002,(y−length/2)/1000]. Epsilon 0.000001 mm; numeric area tolerance 0.1 mm².
+
+**Center > Center Frame > Field:** center body area centered; frame outer=(center width+2f,center height+2f), so 1200×1200+100 frame gives exactly 1400×1400. Inner joint is cut from the frame band, outer joint from field. At frame 100 / joint 3 mm, stock 100 mm strips have 97 mm visible cross-width: real cuts with original-body UVs, not stretched textures. Top/bottom own butt corners; long edge follows side. Frame must leave a positive body width beyond its joint; center+frame+outer seam must fit. Frame with Center disabled keeps its opening filled by Main Field; disabling zones retains choices. No field bodies/joints remain below higher zones. One field grid phase; true L-cuts share sourceTileId. Legacy room-perimeter `border` is internal, disabled/unexposed, with its old numeric tests retained.
+
+**Shared compiler:** `roomSurface(roomSize)+FloorInstallation+resolved demo/uploaded body assets → one memoized compileLayout result → LayoutPlan Canvas / AdvancedFloor`. Pure compiler, deterministic IDs/sourceTileId, visible body rectangles, source crops, rotation 0/90, full/cut, explicit joint rectangles, regions/areas/errors; 10000 candidate-cell budget. No extra placement algorithm, material per tile or React node per tile. 3D uses one indexed body batch per asset + grout; disposed replacement buffers/materials and read-only cached sources.
+
+**Scene and UX:** clear Main Field/Center Frame/Center selectors list demos and My Tiles with body dimensions. Room controls precede them; room dimensions are separate from tile and zone dimensions. Floor/walls/openings/ceiling/trims/furniture anchors/lights/walk bounds/XR spawn+teleport derive from subscribed room dimensions, preserving fixed physical furniture/opening sizes. Range 4–12 m supports existing context without a furniture-layout system. Top fits room/aspect; Overview/Floor elevation adapts; Detail remains a physical close-up. Resizing clears saved pre-resize room pose; live transition radius and XR cleanup remain. Reset camera uses current room; Reset Design retains room dimensions. Refresh resets session-local room/design; uploaded library persistence unchanged. Simple material/Compare preserved on resized floor. Plan uses demand rendering; active XR/Room restore normal loop. No new XR controls.
+
+**Numeric verification:** 23 geometry/domain/render cases plus 11 unchanged server/security/adapter cases pass; TypeScript/lint/build/npm test pass with existing large-chunk warnings. Coverage tests verify no body/joint overlap, exact area, centered ring, independent assets, deterministic cuts/IDs, invalid frame/center/room, unchanged body dimensions across 4200×5600,5400×7200,6000×7000,8000×10000.
+
+**Runtime verification:** full fixture upload/apply/delete/refresh/recovery/lock/unlock/Compare/mobile and 2D/3D buffer/clip parity passed. Resize scenarios 6×7,5.4×7.2,8×10,4.2×5.6 passed actual floor/ceiling/body buffers and Top corner projection; mixed assets, invalid drafts, toggles and views passed. With 600×600 field/100×600 frame / 1200×1200 center, joint 3 mm, counts are 122/10/1 at 6×7,110/10/1 at 5.4×7.2,241/10/1 at 8×10. At 5.4×7.2 bodies 38,516,646 mm²+joints 363,354 mm²=38,880,000 mm²; at 8×10 bodies 79,210,526+joints 789,474=80,000,000 mm². Three asset batches+grout=four floor meshes (121 pieces→484 vertices;252→1008). Counts are visible pieces, not purchasing quantities.
+
+**XR:** two emulator cycles, first 6×7 from Room then 8×10 from Layout; installation/original camera restored, actual spawn/teleport dimensions matched. Exit counters remained 7 frame subscribers, 1 canvas, 0 active inputs/overlays; post-exit WASD/drag/wheel/Reset/Reset Design passed. Normal dev has emulator disabled; dev:xr explicitly enables it; production guard/store/panels/controllers/hands/teleport/snap-turn preserved. VRLocomotion only changed its room dimension subscription. The installed SDK emitted a superseded automatic-offer rejection; it is recorded separately as sdkNotices, while unrelated exceptions fail the runner. No SDK/session behavior was changed. Software WebGL/DPR 0.5 acceptance is not physical-headset/FPS proof.
+
+**Limits:** rectangular room/zones,Straight 0/90,fixed grid,butt corners,planar tops,bounded candidate count. No arbitrary polygons/Running Bond,multi-size patterns,quantities/waste/cartons/prices/PDF,saved projects/accounts or broader backend. API/Supabase/security/schema/dependencies unchanged. No commit/push/deploy.
+
+# 17B. Milestone 3 — explicit Apply Design correction (2026-10-27)
+
+**Implemented and runtime verified without changing compiler geometry, room limits, joint semantics, Center Frame, uploads/Supabase or XR.** Floor Design now edits a local draft of all room/installation controls. The previous field/zone/joint inputs called the authoritative store on each edit; context recompilation then replaced merged geometry and redrew the plan. Room dimensions had a separate Apply action, allowing partial composition changes. That eager path is removed.
+
+**Apply Design** sits beside **Reset Design** in a permanently visible footer, with the fields scrolling separately so actions do not cover inputs. Apply is disabled when the normalized draft equals the applied configuration; otherwise a subtle “Unsaved changes” status appears. Apply validates room bounds and the complete composition against current assets, then publishes room dimensions and installation together in one Zustand action. The provider reuses that validated compiler result for both consumers, avoiding another compilation at publication. Invalid Apply shows visible validation and leaves the applied room, geometry and plan unchanged. Existing zero-joint support remains unchanged. No automatic Enter submission or global Apply listener was added.
+
+Reset retains the existing product behavior: reset composition from the selected simple material, retain current room dimensions, synchronize the draft and clear dirty/errors. Close discards unapplied edits; reopening copies applied state. Switching Room/Layout while the panel stays open preserves the draft. Drafts have no persistence. Initialization, Reset and asset availability/URL refresh can still compile; typing/selecting/toggling draft fields cannot.
+
+**Measured runtime:** native V8 precise function-call coverage observed zero compileLayout calls during multi-digit numeric edits and all three asset/orientation selections, one call on a valid Apply, and one atomic configuration publication. Geometry UUIDs remained unchanged before Apply. With Layout open, center edits 1200→1800 mm produced zero plan redraws and retained the actual 1200 mm 3D bounds; Apply changed both to 1800 mm. Invalid room/center/frame/joint drafts held the applied snapshot; Close/reopen and Reset synchronization passed. The exact 5.4×7.2 / fixture Prestige / Dark Stone frame100 / Carrara center1200 / joint3 workflow passed. Fixture My Tiles loading and uploaded-image rendering passed; no live asset writes or service/security changes.
+
+Footer hit tests passed at 1280×900, 820×1180 and 390×844, at both form scroll ends; screenshots were inspected. Overview/Floor/Top/Detail passed. Two emulator cycles with explicit Apply (6×7 Room, 8×10 Layout) preserved installation, original camera and plan; exits retained 7 frame subscribers, 1 canvas, 0 XR inputs/overlays; post-exit WASD/drag/wheel/Reset/Reset Design passed. Existing SDK superseded-offer console notices remain documented; no unrelated runtime exception. Software WebGL at test-only DPR0.5; no headset/FPS claim. TypeScript/lint/build/npm test and 23 geometry + 11 server/security cases pass, with existing bundle warnings. No commit/push/deploy or later milestone.
 
 # 18. Pattern Engine Vision
 
 Initial: Straight; horizontal/vertical orientation; 50% and 33% Running Bond; Checker. Later: multi-size modular, Herringbone, Chevron, Basketweave, custom definitions. Patterns specify tile slots or placement rules, not painted textures. Slot-to-TileAsset assignments enable different SKUs and sizes. Compiler handles row offsets, orientation, grout pitch and clipping. Start with Straight then Running Bond; do not build all patterns simultaneously.
 
 # 19. Zone Engine Vision
+
+The current approved composition is Main Field + Center Frame + Center (§17A). Room-perimeter border is internal, disabled/unexposed; the broader combinations below remain future work.
 
 Field: main coverage. Border: perimeter band/frame. Center/Inset: internal decorative area or motif. Accent Strip: narrow separator. Custom Area: later rectangular/polygonal user region. Support nested/adjacent bands such as outer dark border, inner frame, beige field and decorative center. Define overlap precedence and subtract occupied regions rather than stacking coincident full-floor textures. Choose corner treatment, strip joins and alignment explicitly in a later specification.
 
@@ -415,9 +460,9 @@ Room + Surfaces + Zones + Tile Assets/Sizes + Pattern + Grout + Origin/Alignment
 
 Future outputs: placement identity; asset/SKU; surface/zone membership; position; rotation; physical dimensions; full/cut classification; original tile bounds and clipped boundary/cut geometry; coverage and useful diagnostics. Preserve provenance so a visible fragment can be traced to an asset and source tile. The compiler is source of truth for placement; 3D must not invent it independently.
 
-### Pre-Layout Correctness Gate — Binding Before Milestone 3 Authority
+### Pre-Layout Correctness Gate — Satisfied for M3 Rectangular Straight
 
-Before Milestone 3 / LayoutCompiler becomes authoritative, explicitly define:
+The M3 contract in §17A now defines and tests the following for rectangular Straight. Preserve it in future patterns/outputs:
 
 - Whether entered tile dimensions represent tile body size.
 - Full physical grout/joint width and installation pitch.
@@ -429,7 +474,7 @@ Then 2D layout, 3D layout, quantity calculations and technical output must use *
 
 ### Automated Geometry Correctness — Mandatory Future Requirement
 
-The current absence of a test framework is acceptable history for a visual proof of concept, not sufficient assurance for authoritative installation geometry. Before LayoutCompiler powers quantities or technical output, add an automated numeric/geometry correctness strategy covering at least:
+The historical absence of geometry tests is superseded by the native M3 suite. Future patterns/geometry must extend it rather than relying on screenshots. Before LayoutCompiler powers quantities or technical output, add an automated numeric/geometry correctness strategy covering at least:
 
 - Unit conversion.
 - Straight placement and Running Bond offsets.
@@ -440,7 +485,7 @@ The current absence of a test framework is acceptable history for a visual proof
 - Area reconciliation.
 - Deterministic multi-face assignment where relevant.
 
-Screenshot/visual regression may supplement these tests but must not replace numeric/geometry tests. Native Node backend/adapter tests now exist; the authoritative compiler geometry suite remains future work. No external test framework dependency has been installed.
+Screenshot/visual regression may supplement these tests but must not replace numeric/geometry tests. Native Node backend/adapter and M3 compiler geometry suites now exist; broader pattern/clipping/quantity validation remains future work. No external test framework dependency has been installed.
 
 # 21. 2D / 3D Synchronization Principle
 
@@ -462,7 +507,7 @@ One authored installation, one compiled placement result. The top-down editor up
 
 # 22. Engineer Mode vs Customer Preview
 
-Future Engineer Mode exposes room/tile dimensions, assets, zones, patterns, grout, origin/alignment, rotation and quantities. Customer Preview presents a clean room, selected design, Compare, Design A/B/C and fullscreen preview. These are presentations of the same project, not parallel design stores. Current application has only the simple showroom picker/HUD; no mode switch exists.
+Future Engineer Mode exposes room/tile dimensions, assets, zones, patterns, grout, origin/alignment, rotation and quantities. Customer Preview presents a clean room, selected design, Compare, Design A/B/C and fullscreen preview. These are presentations of the same project, not parallel design stores. The application now switches between Simple material and Floor Design, with Room/Layout presentations. Broader Engineer/Customer modes remain future work.
 
 # 23. Quantity / Waste / PDF Path
 
@@ -501,9 +546,9 @@ Neither is implemented or authorized now. No dedication intro should be restored
 
 **Implemented locally with fixture verification:** single-operator cookie gate, server-only Supabase API integration, SQL setup artifact, private signed uploads/reads, image preview/crop/rotation, canonical mm metadata, saved library, real-scale Apply, Delete/recovery, finish mapping and isolated texture transforms. At original verification the user had no configured Supabase project; live activation/production routing instructions remain in docs/ONLINE_TILE_SETUP.md. No commercial Product/Variant refactor or layout compiler.
 
-### Milestone 3 — 2D Layout Foundation
+### Milestone 3 — Geometric Tile Layout Engine
 
-Dedicated technical 2D Layout Editor; exact geometry; dimensions; selection; zones; grout; origin/alignment; rotation; technical overlays; Straight/Running Bond; synchronized 3D. Establish shared installation coordinates, then compiler rules and parity checks. Satisfy the canonical-unit/surface-coordinate contract and pre-layout grout correctness gate before treating results as authoritative. Plan automated numeric geometry validation; expand zone authoring in Milestone 4.
+**Implemented/verified:** focused mm domain, Straight Field/Center Frame/Center, deterministic geometric bodies/cuts/joints, one compiler result, single-Canvas plan, grouped 3D renderer and mandatory numeric tests. See §17A. This explicit scope supersedes the old roadmap: Running Bond is not included or authorized.
 
 ### Milestone 4 — Multi-Tile + Zones
 
@@ -517,11 +562,11 @@ Multiple faces; cut edges; performance; better texture pipeline. Measure renderi
 
 Quantity; waste; design alternatives; screenshots; dimensioned PDF/project summary. Validate calculations against compiled geometry and supplier packaging assumptions. Automated geometry correctness coverage in §20 is mandatory before compiler results power quantities or technical output.
 
-Milestones 1 and 2 were explicitly authorized. Milestone 2 is implemented locally with real Supabase/Vercel activation still pending; milestones 3–6 remain future direction only. Stop after the upload milestone; do not begin layout engineering automatically.
+Milestones 1–3 are explicitly authorized and implemented as documented. Live M3 read/apply/render was verified, while write regressions used the fixture; Vercel deployment/routing remains unverified in this task. Stop here. Running Bond and milestones 4–6 are future work, not authorization.
 
 # 27. Immediate Execution Sequence
 
-Steps 1–3 were implemented in Milestone 1. Steps 4–5 now have the Milestone 2 online-upload implementation with fixture verification; actual Supabase/Vercel activation remains pending setup. Steps 6–15 remain future work; no layout-engine authorization follows.
+Steps 1–5 are preserved from M1/M2. The explicit M3 request implemented the focused model/compiler, Straight, plan/room parity and rectangular field/Center Frame/center (steps 6–9, 11–14 in bounded form). Step 10 Running Bond and step 15 expansion remain unauthorized; no future-work item is implied by this sequence.
 
 1. Preserve current code and VR.
 2. Reframe/enlarge room and improve visibility.
@@ -544,7 +589,7 @@ Steps 1–3 were implemented in Milestone 1. Steps 4–5 now have the Milestone 
 - Continue the existing project incrementally; preserve historical WebXR code.
 - Desktop/web professional tile/interior finish design is primary. VR is frozen unless explicitly reactivated.
 - Real physical dimensions are non-negotiable. Before compiler implementation, establish the canonical-unit, conversion-boundary and surface-coordinate contract in §16; define epsilon policy before clipping/quantity calculations.
-- Before Milestone 3 authority, satisfy the body-size/full-joint/pitch/seam/boundary/tolerance gate in §20; all renderers and outputs share those semantics.
+- Milestone 3 satisfies the body-size/full-joint/pitch/seam/boundary/tolerance gate for rectangular Straight (§17A/20). Preserve those shared semantics in future renderers/patterns/outputs.
 - Automated numeric/geometry testing is mandatory before compiler results power quantities or technical output; screenshots cannot substitute for it.
 - Preserve both project-local ad-hoc TileAssets and future Product → Variant/SKU → TileAsset/FaceSet → Installation compatibility. Product/Variant implementation is not an Upload Tile prerequisite.
 - Milestone 1 Top View is camera inspection; Milestone 3's dedicated technical 2D editor consumes shared compiled geometry.
@@ -560,22 +605,22 @@ Steps 1–3 were implemented in Milestone 1. Steps 4–5 now have the Milestone 
 
 # 29. Risks / Unknowns
 
-**Current facts:** one 6×7 m repeated-texture floor; three built-in procedural demos plus an implemented uploaded TileAsset path. Wall/camera fixes remain. Main material UV ownership is corrected; grout full-joint/body/pitch semantics remain deliberately unresolved. Supabase integration/schema/gate are code-complete locally, but the user has no configured project; fixture checks are not live database/storage/deployment proof. No saved Project, layout compiler, zones/patterns, engineering output or multi-user model.
+**Current facts:** one editable rectangular room (default 6×7;4–12 m each side), legacy single-material preview/Compare and an active geometric Straight Floor Design for field/Center Frame/center. M3 body/full-joint/mm/coordinate/tolerance conventions and numeric tests are implemented. Live uploaded 600×600 metadata/signed-image reads and rendering were verified without live asset writes. The refinement library contained two assets; Prestige was absent, so an existing upload was used with Dark Stone frame/Carrara center. Private upload/library/signing schema and security code are unchanged; writes/deletion/renewal/refresh were regression-tested against the isolated fixture. No project persistence, arbitrary zone/pattern editor, commercial SKU model or purchasing/output system.
 
-**Required activation:** apply the reviewed SQL manually, configure private bucket limits/policies, create server environment values in ignored .env.local and Vercel, configure production login rate limiting, and run the real end-to-end acceptance checklist. Production API routing/build behavior has not been platform-tested; no Vercel CLI install/link/deploy occurred. Existing Vercel deployment is user-confirmed, with exact URL/commit mapping unknown; these local changes are not deployed.
+**Deployment/security limits:** Vercel function routing/deployed commit mapping and actual remote SQL/grants/bucket-policy audit were not performed in M3. No deployment, SQL or security mutation occurred. Existing setup/operations instructions remain relevant to deployment acceptance. Live reads do not prove every production write or permission policy; do not equate fixture writes with live database/Storage proof.
 
 **Operational limits:** session cookie is stateless; logout does not revoke a stolen cookie until expiry (rotate code/secret to invalidate). Signed URLs are bearer capabilities with separate lifetimes. Per-instance rate limiting is not distributed. Private orphan objects can remain after abandoned uploads/server interruption/double-failure deletion; cleanup receipts are memory-only and expire. SQL was not executed against Postgres in this session. Image signature checks are not antivirus/full server decoding. Original image bytes are not archived; prepared pixels are immutable. The small library uses the configured Data API row cap without pagination. Large libraries/large textures need future performance work.
 
 **Visual/hardware limits:** browser checks used headless/software WebGL and generated image fixtures, not supplier color calibration or physical Quest hardware. No furniture collision/full mobile walking controls were added. Splash remains first-frame based; large build chunks remain. No Quest frame-rate/comfort/material-fidelity guarantee.
 
-**Before authoritative layout/output:** complete Surface local coordinates, canonical layout units/conversions, body/joint/pitch/seam/boundary/tolerance definitions, clipping/zone rules and mandatory numeric geometry tests (§16/20). Current mm tile storage does not itself establish engineering-accurate grout/cuts/quantities. No final epsilon/clipping library, project schema, commercial catalog or quantity model was selected.
+**Before broader layout/output:** preserve the M3 Surface/mm/body/full-joint/seam/boundary/tolerance contract and extend its tests for new patterns, polygon geometry and outputs. Purchasing/cut reuse/quantity correctness is not established by the current visible-body geometry. No future polygon-clipping package, saved-project schema, commercial catalog or purchasing quantity model was selected.
 
 # 30. Instructions for Future Sessions
 
 1. Read `PROJECT_MASTER_REFERENCE.md` first for approved product direction and architecture decisions. The unchanged draft and PROJECT_HANDOFF are historical context; this master supersedes explicit disagreements. Verify implementation in actual source and label user-confirmed operational facts.
 2. Inspect `git status`, preserving pre-existing user changes and untracked documents.
 3. Verify relevant source before changing anything; code establishes current behavior.
-4. Milestones 1/2 implementation and fixture/live limits are recorded here. Finish real setup/acceptance only when authorized; do not start Milestone 3, accounts or layout/domain expansion automatically.
+4. Milestones 1–3 and fixture/live limits are recorded here. Stop after current M3; do not start Running Bond, Milestone 4, accounts or broader persistence/layout authoring automatically.
 5. Preserve VR unless the user explicitly reactivates it; later feed it the shared compiled layout.
 6. Never infer that roadmap items are already implemented, or that hardware validation occurred.
 7. Update the master reference after major architecture milestones with the user's authorized scope.
@@ -584,3 +629,5 @@ Steps 1–3 were implemented in Milestone 1. Steps 4–5 now have the Milestone 
 10. Do not commit, push, deploy, install packages or expand scope automatically. Do not restore dedication work or redesign VR UX without explicit direction.
 
 **Milestone 2 boundary:** upload/gate/Supabase integration, SQL/setup/local-runner artifacts, metadata/render adapter, texture ownership and focused library UI were implemented alongside preserved Milestone 1 work. Historical handoff/draft, built-in product entries, room/furniture/lighting and XR files remain unchanged in this milestone; no dependency or lockfile resolution changes. Type/lint/build/server tests and fixture browser checks were performed. No real credentials, remote SQL, live Supabase acceptance, commit, push, deployment, Supabase Auth, accounts or Milestone 3 work. Stop and await the next explicit instruction.
+
+**Milestone 3 boundary:** implemented and tested Straight + Field + Center Frame + Center and shared 2D/3D geometry from clean checkpoint 1c3a0b3. Existing API/Supabase/schema/security/XR UI and dependency files are unchanged. Only read/apply/render used the live library; generated upload/delete acceptance used the isolated fixture. No commit, push, deploy, Running Bond or Milestone 4.

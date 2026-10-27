@@ -1,14 +1,16 @@
+import { useRoom } from "./useRoom";
 import { RoundedBox } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { getAbstractArtTexture } from "../textures/generateAbstractArt";
-import { ROOM } from "./roomConfig";
+
 
 const mat = (color: string, roughness = 0.7, metalness = 0) =>
   new THREE.MeshStandardMaterial({ color, roughness, metalness });
 
 /** A simple low-poly modern sofa against the back wall. */
 function Sofa() {
+  const ROOM = useRoom();
   const fabric = useMemo(() => mat("#a39684", 0.82), []);
   const wood = useMemo(() => mat("#3f2f22", 0.6), []);
 
@@ -41,6 +43,7 @@ function Sofa() {
 
 /** A small round coffee table. */
 function CoffeeTable() {
+  const ROOM = useRoom();
   const top = useMemo(() => mat("#c3a06a", 0.32), []);
   const leg = useMemo(() => mat("#2b2b2b", 0.5, 0.4), []);
 
@@ -61,6 +64,7 @@ function CoffeeTable() {
 
 /** A minimal round side table beside the sofa. */
 function SideTable() {
+  const ROOM = useRoom();
   const top = useMemo(() => mat("#e9e5dd", 0.5), []);
   const leg = useMemo(() => mat("#2b2b2b", 0.5, 0.4), []);
   const decor = useMemo(() => mat("#c98a5b", 0.35), []);
@@ -86,6 +90,7 @@ function SideTable() {
 
 /** A floor lamp for warm ambient decor. */
 function FloorLamp() {
+  const ROOM = useRoom();
   const pole = useMemo(() => mat("#3a3a3a", 0.4, 0.6), []);
   const shade = useMemo(
     () => new THREE.MeshStandardMaterial({ color: "#f2ead9", roughness: 0.6, emissive: "#ffffff", emissiveIntensity: 0.08 }),
@@ -110,6 +115,7 @@ function FloorLamp() {
 
 /** A potted plant for greenery. */
 function PottedPlant() {
+  const ROOM = useRoom();
   const pot = useMemo(() => mat("#8a5c3b", 0.8), []);
   const foliage = useMemo(() => mat("#3c6b40", 0.9), []);
 
@@ -130,6 +136,7 @@ function PottedPlant() {
 
 /** A framed abstract wall art piece above the sofa. */
 function WallArt() {
+  const ROOM = useRoom();
   const frame = useMemo(() => mat("#2b2b2b", 0.5), []);
   const canvas = useMemo(
     () => new THREE.MeshStandardMaterial({ map: getAbstractArtTexture(), roughness: 0.85 }),

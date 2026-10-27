@@ -1,8 +1,9 @@
+import { useRoom } from "./useRoom";
 import { TeleportTarget, XROrigin, useXRControllerLocomotion } from "@react-three/xr";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Group } from "three";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
-import { ROOM, VR_SPAWN } from "./roomConfig";
+
 import { VRMaterialPanel } from "./vr-ui/VRMaterialPanel";
 import { VROnboarding } from "./vr-ui/VROnboarding";
 import { VRToolbar } from "./vr-ui/VRToolbar";
@@ -14,6 +15,8 @@ import { VRToolbar } from "./vr-ui/VRToolbar";
  * which is a common source of VR motion sickness.
  */
 export function VRLocomotion() {
+  const ROOM = useRoom();
+  const VR_SPAWN = useMemo<[number,number,number]>(()=>[0,0,ROOM.length/2-.9],[ROOM.length]);
   const originRef = useRef<Group>(null);
   const returnToStartToken = useConfiguratorStore((s) => s.vrReturnToStartToken);
 
@@ -29,7 +32,7 @@ export function VRLocomotion() {
   useEffect(() => {
     if (returnToStartToken === 0) return;
     originRef.current?.position.set(...VR_SPAWN);
-  }, [returnToStartToken]);
+  }, [returnToStartToken, VR_SPAWN]);
 
   const vrPanelOpen = useConfiguratorStore((s) => s.vrPanelOpen);
 

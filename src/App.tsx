@@ -16,6 +16,9 @@ import { CeramicCatalog } from "./ui/CeramicCatalog";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { Hud } from "./ui/Hud";
 import { LoadingScreen } from "./ui/LoadingScreen";
+import { FloorDesignProvider } from "./layout/FloorDesignContext";
+import { FloorDesign } from "./ui/FloorDesign";
+import { SceneActivity } from "./scene/SceneActivity";
 import { xrStore } from "./xr/store";
 
 /** Swaps navigation scheme based on whether an XR session is active. */
@@ -54,10 +57,11 @@ export default function App() {
   return (
     <div className="app-root">
       <ErrorBoundary>
+        <FloorDesignProvider>
         <Canvas
           shadows="variance"
           dpr={[1, 1.5]}
-          camera={{ fov: 60, near: 0.05, far: 50, position: [0, 1.6, 1.6] }}
+          camera={{ fov: 60, near: 0.05, far: 100, position: [0, 1.6, 1.6] }}
           gl={{ antialias: true }}
         >
           <XR store={xrStore}>
@@ -65,6 +69,7 @@ export default function App() {
             <Lighting />
             <Showroom />
             <SceneControls />
+            <SceneActivity />
             <ReadySignal onReady={() => setSceneReady(true)} />
           </XR>
         </Canvas>
@@ -72,7 +77,9 @@ export default function App() {
         {!sceneReady && <LoadingScreen />}
         <Hud />
         <CeramicCatalog />
+        <FloorDesign />
         {floorImageError && <div className="floor-image-error" role="alert">{floorImageError}</div>}
+      </FloorDesignProvider>
       </ErrorBoundary>
     </div>
   );

@@ -1,10 +1,12 @@
+import { useRoom } from "./useRoom";
 import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
-import { ROOM } from "./roomConfig";
+import { useFloorDesignStore } from "../state/useFloorDesignStore";
+
 
 const MOVE_SPEED = 2.2;
 const MARGIN = 0.35;
@@ -17,7 +19,8 @@ const scratchMove = new THREE.Vector3();
 type Pose = { position: THREE.Vector3; target: THREE.Vector3; fov: number };
 type Tween = { from: Pose; to: Pose; start: number };
 
-function presetPose(view: string, aspect: number): Pose {
+function presetPose(view: string, aspect: number, ROOM: {width:number;length:number}): Pose {
+  const scale=Math.max(ROOM.width/6,ROOM.length/7);
   if (view === "top") {
     const fov = 45;
     // Fit both dimensions, including portrait screens. Tiny Z offset avoids
@@ -27,7 +30,7 @@ function presetPose(view: string, aspect: number): Pose {
     return { position: new THREE.Vector3(0, height, 0.001), target: new THREE.Vector3(), fov };
   }
   if (view === "floor") return {
-    position: new THREE.Vector3(0, 2.45, ROOM.length / 2 - 0.65),
+    position: new THREE.Vector3(0, 2.45 * scale, ROOM.length / 2 - 0.65),
     target: new THREE.Vector3(0, 0, -0.1), fov: 52,
   };
   if (view === "detail") return {
@@ -35,7 +38,7 @@ function presetPose(view: string, aspect: number): Pose {
     target: new THREE.Vector3(0.1, 0, 0.5), fov: 48,
   };
   return {
-    position: new THREE.Vector3(0.8, 2.65, ROOM.length / 2 - 0.4),
+    position: new THREE.Vector3(0.8, 2.65 * scale, ROOM.length / 2 - 0.4),
     target: new THREE.Vector3(-0.3, 0, -0.9), fov: 58,
   };
 }
@@ -43,6 +46,7 @@ function presetPose(view: string, aspect: number): Pose {
 /** Small command-driven camera: presets rest untouched, transitions own their
  * live radius, and only deliberate room navigation enters free look/walk. */
 export function DesktopControls() {
+  const ROOM = useRoom();
   const { camera, gl, size } = useThree();
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const keys = useRef<Record<string, boolean>>({});
@@ -51,6 +55,7 @@ export function DesktopControls() {
   const activeView = useRef(useConfiguratorStore.getState().cameraView);
   const initialized = useRef(false);
   const lastRequest = useRef(-1);
+  const lastRoomSize = useRef("");
   const requestToken = useConfiguratorStore((s) => s.cameraRequestToken);
   const cameraView = useConfiguratorStore((s) => s.cameraView);
 
@@ -64,15 +69,19 @@ export function DesktopControls() {
     const controls = controlsRef.current;
     if (!controls || !(camera instanceof THREE.PerspectiveCamera)) return;
     const state = useConfiguratorStore.getState();
-    if (initialized.current && lastRequest.current === requestToken && state.cameraView !== "top") return;
+    const roomKey = `${ROOM.width}/${ROOM.length}`;
+    const resized=lastRoomSize.current!==roomKey;
+    if (initialized.current && !resized && lastRequest.current === requestToken && state.cameraView !== "top") return;
+    lastRoomSize.current=roomKey;
+    if(resized) savedRoom.current=null;
     lastRequest.current = requestToken;
-    let destination = presetPose(state.cameraView, size.width / size.height);
-    if (state.cameraRequestKind === "return" && savedRoom.current) {
+    let destination = presetPose(state.cameraView, size.width / size.height, ROOM);
+    if (!resized && state.cameraRequestKind === "return" && savedRoom.current) {
       destination = savedRoom.current.pose;
       activeView.current = savedRoom.current.view;
     } else {
       if (["floor", "top", "detail"].includes(state.cameraView) &&
-          ["room", "free"].includes(activeView.current) && initialized.current) {
+          ["room", "free"].includes(activeView.current) && initialized.current && !resized) {
         const view = activeView.current as "room" | "free";
         savedRoom.current = { pose: readPose(), view };
         useConfiguratorStore.setState({ lastRoomView: view });
@@ -99,7 +108,7 @@ export function DesktopControls() {
     // Commands, not mode changes from free navigation, start camera motion.
     // Resize reframes Top to keep the full floor visible at either aspect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestToken, camera, size.width, size.height]);
+  }, [requestToken, camera, size.width, size.height, ROOM.width, ROOM.length]);
 
   const enterFree = () => {
     const controls = controlsRef.current;
@@ -114,6 +123,7 @@ export function DesktopControls() {
   useEffect(() => {
     const movementKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
     const down = (e: KeyboardEvent) => {
+      if (useFloorDesignStore.getState().presentation === "layout") return;
       const target = e.target as HTMLElement;
       if (target?.closest("dialog[open]") || target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName)) return;
       if (!movementKeys.has(e.code)) return;
@@ -123,7 +133,7 @@ export function DesktopControls() {
     const up = (e: KeyboardEvent) => { keys.current[e.code] = false; };
     const clear = () => { keys.current = {}; };
     const wheel = (e: WheelEvent) => {
-      if (tween.current || activeView.current === "top" || !(camera instanceof THREE.PerspectiveCamera)) return;
+      if (useFloorDesignStore.getState().presentation === "layout" || tween.current || activeView.current === "top" || !(camera instanceof THREE.PerspectiveCamera)) return;
       camera.fov = THREE.MathUtils.clamp(camera.fov + e.deltaY * 0.02, 35, 75);
       camera.updateProjectionMatrix();
     };
@@ -144,7 +154,7 @@ export function DesktopControls() {
   useFrame((_, delta) => {
     const controls = controlsRef.current;
     if (!controls || !(camera instanceof THREE.PerspectiveCamera)) return;
-    if (document.querySelector("dialog[open]")) {
+    if (document.querySelector("dialog[open]") || useFloorDesignStore.getState().presentation === "layout") {
       keys.current = {};
       controls.enabled = false;
       return;

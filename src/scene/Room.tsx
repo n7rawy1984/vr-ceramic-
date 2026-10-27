@@ -1,10 +1,11 @@
+import { useRoom } from "./useRoom";
 import { useMemo, type RefObject } from "react";
 import * as THREE from "three";
-import { CeramicFloor } from "./CeramicFloor";
+import { FloorSurface } from "./FloorSurface";
 import { Door } from "./Door";
 import { Wall } from "./Wall";
 import { Window } from "./Window";
-import { DOOR, ROOM, WALL_THICKNESS, WINDOW } from "./roomConfig";
+import { DOOR, WALL_THICKNESS, WINDOW } from "./roomConfig";
 
 /**
  * The room shell: floor (reusable ceramic system), four walls with a door
@@ -13,6 +14,7 @@ import { DOOR, ROOM, WALL_THICKNESS, WINDOW } from "./roomConfig";
  * later.
  */
 export function Room({ overheadRef }: { overheadRef?: RefObject<THREE.Group | null> }) {
+  const ROOM = useRoom();
   const wallMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ color: "#f0f0ee", roughness: 0.87 }),
     [],
@@ -34,8 +36,8 @@ export function Room({ overheadRef }: { overheadRef?: RefObject<THREE.Group | nu
   const ceilingPanelY = ROOM.height - 0.025;
 
   return (
-    <group>
-      <CeramicFloor />
+    <group name="room-shell">
+      <FloorSurface />
 
       <group name="overhead" ref={overheadRef}>
         {/* Ceiling */}

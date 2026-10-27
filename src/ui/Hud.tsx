@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BRAND } from "../config/brand";
 import { useVRSupported } from "../hooks/useVRSupported";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
+import { useFloorDesignStore } from "../state/useFloorDesignStore";
 import { xrStore } from "../xr/store";
 
 const ERROR_DISPLAY_MS = 4500;
@@ -13,6 +14,8 @@ export function Hud() {
   const setCameraView = useConfiguratorStore((s) => s.setCameraView);
   const returnToRoom = useConfiguratorStore((s) => s.returnToRoom);
   const vrSupport = useVRSupported();
+  const design = useFloorDesignStore();
+  const selectedFloorId = useConfiguratorStore(s=>s.selectedFloorId);
 
   const [vrError, setVrError] = useState<string | null>(null);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,16 +62,18 @@ export function Hud() {
           <div className="view-controls" role="group" aria-label="Camera views">
             {([['room', 'Overview'], ['floor', 'Floor'], ['top', 'Top'], ['detail', 'Detail']] as const).map(([view, label]) => (
               <button key={view} className={`hud-button${cameraView === view ? " active" : ""}`}
-                aria-pressed={cameraView === view} onClick={() => setCameraView(view)}
+                aria-pressed={cameraView === view} onClick={() => {design.setPresentation("room");setCameraView(view);}}
                 title={view === "top" ? "Top inspection view" : view === "floor" ? "View Floor" : `${label} view`}>
                 {label}
               </button>
             ))}
           </div>
           {["floor", "top", "detail"].includes(cameraView) && (
-            <button className="hud-button" onClick={returnToRoom}>Back to Room</button>
+            <button className="hud-button" onClick={()=>{design.setPresentation("room");returnToRoom();}}>Back to Room</button>
           )}
-          <button className="hud-button" onClick={resetCamera} title="Reset to Overview">Reset</button>
+          <button className="hud-button" onClick={()=>{design.setPresentation("room");resetCamera();}} title="Reset to Overview">Reset</button>
+          <button className="hud-button" onClick={()=>design.openDesigner(selectedFloorId)}>Floor Design</button>
+          <button className="hud-button" onClick={()=>{design.openDesigner(selectedFloorId);design.setPresentation("layout");}}>Layout</button>
           {vrSupport === "supported" && (
             <button className="hud-button hud-button-primary" onClick={handleEnterVR}>
               Enter VR

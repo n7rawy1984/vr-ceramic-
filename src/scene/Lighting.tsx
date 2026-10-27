@@ -1,6 +1,7 @@
+import { useRoom } from "./useRoom";
 import { useEffect, useRef } from "react";
 import type { DirectionalLight, Object3D } from "three";
-import { ROOM, WINDOW } from "./roomConfig";
+import { WINDOW } from "./roomConfig";
 
 /**
  * Neutral showroom lighting: one shadow-casting key aligned with the window so
@@ -10,6 +11,8 @@ import { ROOM, WINDOW } from "./roomConfig";
  * still giving polished vs. matte ceramics a clearly different look.
  */
 export function Lighting() {
+  const ROOM = useRoom();
+  const shadowExtent=Math.max(ROOM.width,ROOM.length);
   const halfW = ROOM.width / 2;
   const sunRef = useRef<DirectionalLight>(null);
   const sunTargetRef = useRef<Object3D>(null);
@@ -21,7 +24,8 @@ export function Lighting() {
     if (sunRef.current && sunTargetRef.current) {
       sunRef.current.target = sunTargetRef.current;
     }
-  }, []);
+    sunRef.current?.shadow.camera.updateProjectionMatrix();
+  }, [ROOM.width,ROOM.length]);
 
   return (
     <>
@@ -42,11 +46,11 @@ export function Lighting() {
         castShadow
         shadow-mapSize={[1024, 1024]}
         shadow-camera-near={1}
-        shadow-camera-far={20}
-        shadow-camera-left={-ROOM.length}
-        shadow-camera-right={ROOM.length}
-        shadow-camera-top={ROOM.length}
-        shadow-camera-bottom={-ROOM.length}
+        shadow-camera-far={40}
+        shadow-camera-left={-shadowExtent}
+        shadow-camera-right={shadowExtent}
+        shadow-camera-top={shadowExtent}
+        shadow-camera-bottom={-shadowExtent}
         shadow-radius={2.5}
         shadow-bias={-0.0008}
       />
@@ -57,7 +61,7 @@ export function Lighting() {
       <pointLight
         position={[0, ROOM.height - 0.3, 0]}
         intensity={0.85}
-        distance={10}
+        distance={Math.max(10,shadowExtent*1.5)}
         decay={2}
         color="#ffffff"
       />
