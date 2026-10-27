@@ -1,6 +1,6 @@
 # Geometric Floor Design — Milestone 3 refinement
 
-Current scope: Main Field + optional Center Frame + optional Center, Straight only, editable rectangular room. This refines the existing uncommitted M3 work from checkpoint `1c3a0b3`; it is not Milestone 4.
+Current scope: Main Field + optional Center Frame + optional Center, editable rectangular room. M4A adds Straight / Grid, Running Bond 50%, Running Bond 33% and equal-size Checker for Main Field; see [FLOOR_PATTERNS.md](FLOOR_PATTERNS.md). The original M3 geometry and historical verification below remain the base contract; Center and Frame keep their existing logic. Multi-Size Modular Patterns, herringbone, quantities and PDF remain future work.
 
 ## Domain and units
 

@@ -1,4 +1,7 @@
-import type { CompileResult, CompiledLayout, CompiledTilePlacement, FloorInstallation, LayoutAsset, Orientation, RectMm, Surface, ZoneId } from "./model.ts";
+import { LAYOUT_PATTERNS } from "./model.ts";
+import { multiSizeModule, repeatModule } from "./modules.ts";
+import { fieldRowOffset, checkerAssetId } from "./patterns.ts";
+import type { CompileResult, CompiledLayout, CompiledTilePlacement, FloorInstallation, LayoutAsset, Orientation, RectMm, Surface, ZoneId, LayoutPattern } from "./model.ts";
 
 /** 1 nanometer in mm: far below accepted 0.001 mm metadata precision; removes floating slivers only. */
 export const GEOMETRY_EPSILON_MM = 1e-6;
@@ -54,16 +57,22 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
   if (surface.id !== installation.surfaceId) errors.push("The installation refers to a different floor surface.");
   const j = installation.jointWidthMm;
   if (!Number.isFinite(j) || j < 0 || j > 100) errors.push("Joint must be a full gap from 0 to 100 mm.");
-  if (installation.field.pattern !== "straight") errors.push("Only Straight is supported.");
+  if (!LAYOUT_PATTERNS.includes(installation.field.pattern)) errors.push("Choose Straight, Running Bond 50%, Running Bond 33%, Checker or Multi-Size Modular.");
   if (![0, 90].includes(installation.field.orientation) || ![0, 90].includes(installation.center.orientation)) errors.push("Tile orientation must be 0° or 90°.");
   if (installation.centerFrame.orientationRule !== "follow-side" || installation.border.orientationRule !== "follow-side" || installation.center.position !== "center") errors.push("Unsupported border or center positioning rule.");
   const assetMap = new Map(assets.map(a => [a.id, a]));
-  for (const [zone, enabled, id] of [["Field", true, installation.field.tileAssetId], ["Border", installation.border.enabled, installation.border.tileAssetId], ["Center Frame", installation.centerFrame.enabled, installation.centerFrame.tileAssetId], ["Center", installation.center.enabled, installation.center.tileAssetId]] as const) {
+  for (const [zone, enabled, id] of [["Field", true, installation.field.tileAssetId], ["Checker Tile B", installation.field.pattern === "checker", installation.field.secondaryTileAssetId], ["Border", installation.border.enabled, installation.border.tileAssetId], ["Center Frame", installation.centerFrame.enabled, installation.centerFrame.tileAssetId], ["Center", installation.center.enabled, installation.center.tileAssetId]] as const) {
     if (!enabled) continue;
-    const a = assetMap.get(id);
+    const a = id ? assetMap.get(id) : undefined;
     if (!a) errors.push(`${zone} tile is unavailable. Open My Tiles to load saved assets, or choose another tile.`);
     else if (!positive(a.widthMm) || !positive(a.heightMm)) errors.push(`${zone} tile body dimensions are invalid.`);
   }
+  if (installation.field.pattern === "checker") {
+    const a=assetMap.get(installation.field.tileAssetId),b=installation.field.secondaryTileAssetId?assetMap.get(installation.field.secondaryTileAssetId):undefined;
+    if(a&&b&&(Math.abs(a.widthMm-b.widthMm)>E||Math.abs(a.heightMm-b.heightMm)>E)) errors.push("Checker Field Tile A and Field Tile B must have equal physical body dimensions after orientation. Tiles are never stretched.");
+  }
+  const modular = installation.field.pattern === "modular" ? multiSizeModule(installation.field,j,assetMap) : null;
+  if(modular) errors.push(...modular.errors);
   const { widthMm: w, heightMm: h } = surface;
   const b = installation.border.enabled ? installation.border.widthMm : 0;
   if (installation.border.enabled && (!positive(b) || b * 2 + j * 2 >= Math.min(w, h) - E)) errors.push("Border is too wide: leave a positive inner field and its joints.");
@@ -86,37 +95,49 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
 
   const layout: CompiledLayout = { surface: { ...surface }, placements: [], joints: [], zones: [], tileAreaMm2: 0, jointAreaMm2: 0 };
   let cells = 0;
-  const grid = (zoneId: ZoneId, segment: string, bounds: RectMm, regions: RectMm[], id: string, rotationDeg: Orientation) => {
+  const emitTile = (zoneId:ZoneId,segment:string,regions:RectMm[],assetId:string,rotationDeg:Orientation,tileBounds:RectMm,sourceTileId:string) => {
+    const {xMm:x,yMm:y,widthMm:tw,heightMm:th}=tileBounds;
+    const visible = mergeAdjacentRects(regions.flatMap(region => { const clipped=intersectRects(tileBounds,region); return clipped?[clipped]:[]; }));
+    visible.forEach((clipped, piece) => {
+        const dx = clipped.xMm - x, dy = clipped.yMm - y;
+        layout.placements.push({
+          ...clipped, id: `${sourceTileId}/p${piece}`, sourceTileId, zoneId, segment, tileAssetId: assetId, rotationDeg, tileBounds,
+          fullTile: Math.abs(clipped.widthMm - tw) <= E && Math.abs(clipped.heightMm - th) <= E,
+          sourceRect: rotationDeg === 90
+            ? rect(dy, tw - dx - clipped.widthMm, clipped.heightMm, clipped.widthMm)
+            : rect(dx, dy, clipped.widthMm, clipped.heightMm),
+        });
+    });
+  };
+  const grid = (zoneId: ZoneId, segment: string, bounds: RectMm, regions: RectMm[], id: string, rotationDeg: Orientation, pattern: LayoutPattern = "straight", secondaryId?: string) => {
     if (!regions.length) return;
     const a = assetMap.get(id)!;
     const tw = rotationDeg === 90 ? a.heightMm : a.widthMm;
     const th = rotationDeg === 90 ? a.widthMm : a.heightMm;
     const px = tw + j, py = th + j;
-    const cols = Math.ceil((bounds.widthMm - E) / px), rows = Math.ceil((bounds.heightMm - E) / py);
-    cells += rows * cols;
-    if (cells > MAX_GRID_CELLS) throw new Error(`Design exceeds ${MAX_GRID_CELLS} grid cells. Choose larger tiles or reduce the composition.`);
-    for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
-      const x = bounds.xMm + col * px, y = bounds.yMm + row * py;
-      const tileBounds = rect(x, y, tw, th);
-      const sourceTileId = `${surface.id}/${zoneId}/${segment}/r${row}c${col}`;
-      const visible = mergeAdjacentRects(regions.flatMap(region => { const clipped=intersectRects(tileBounds,region); return clipped?[clipped]:[]; }));
-      visible.forEach((clipped, piece) => {
-          const dx = clipped.xMm - x, dy = clipped.yMm - y;
-          layout.placements.push({
-            ...clipped, id: `${sourceTileId}/p${piece}`, sourceTileId, zoneId, segment, tileAssetId: id, rotationDeg, tileBounds,
-            fullTile: Math.abs(clipped.widthMm - tw) <= E && Math.abs(clipped.heightMm - th) <= E,
-            sourceRect: rotationDeg === 90
-              ? rect(dy, tw - dx - clipped.widthMm, clipped.heightMm, clipped.widthMm)
-              : rect(dx, dy, clipped.widthMm, clipped.heightMm),
-          });
-      });
-      regions.forEach(region => {
-        // Partition each pitch cell into body, right joint, bottom joint.
-        for (const gap of [rect(x + tw, y, j, py), rect(x, y + th, tw, j)]) {
-          const part = intersectRects(gap, region);
-          if (part) layout.joints.push(part);
-        }
-      });
+    const rows = Math.ceil((bounds.heightMm - E) / py);
+    if (rows > MAX_GRID_CELLS-cells) throw new Error(`Design exceeds ${MAX_GRID_CELLS} grid cells. Choose larger tiles or reduce the composition.`);
+    for (let row = 0; row < rows; row++) {
+      // Modulo a short cycle avoids cumulative drift; shifted rows include c=-1.
+      const offset=fieldRowOffset(pattern,row,px);
+      const firstCol=offset>0?-1:0;
+      const endCol=Math.ceil((bounds.widthMm-offset-E)/px);
+      cells+=endCol-firstCol;
+      if (cells > MAX_GRID_CELLS) throw new Error(`Design exceeds ${MAX_GRID_CELLS} grid cells. Choose larger tiles or reduce the composition.`);
+      for (let col = firstCol; col < endCol; col++) {
+        const assetId=pattern==="checker"?checkerAssetId(row,col,id,secondaryId!):id;
+        const x = bounds.xMm + offset + col * px, y = bounds.yMm + row * py;
+        const tileBounds = rect(x, y, tw, th);
+        const sourceTileId = `${surface.id}/${zoneId}/${segment}/r${row}c${col}`;
+        emitTile(zoneId,segment,regions,assetId,rotationDeg,tileBounds,sourceTileId);
+        regions.forEach(region => {
+          // Partition each pitch cell into body, right joint, bottom joint.
+          for (const gap of [rect(x + tw, y, j, py), rect(x, y + th, tw, j)]) {
+            const part = intersectRects(gap, region);
+            if (part) layout.joints.push(part);
+          }
+        });
+      }
     }
     if (layout.placements.length > MAX_GRID_CELLS * 4) throw new Error("Too many clipped pieces. Choose larger tiles.");
   };
@@ -166,7 +187,15 @@ export function compileLayout(surface: Surface, installation: FloorInstallation,
     // A frame may remain enabled with Center off: Main Field fills its opening.
     if(f.enabled && !c.enabled) fieldRegions.push(center);
     layout.zones.push({ id: "field", bounds: b > 0 ? rect(b, b, w - b * 2, h - b * 2) : rect(0, 0, w, h), regions: fieldRegions });
-    grid("field", "field", usable, fieldRegions, installation.field.tileAssetId, installation.field.orientation);
+    if(modular?.module){
+      // Match grid(): a fully occupied field has no candidates to enumerate.
+      if(fieldRegions.length) cells += repeatModule(modular.module,usable,MAX_GRID_CELLS-cells,(tile,row,col,index)=>{
+        emitTile("field","modular",fieldRegions,tile.tileAssetId,tile.rotationDeg,rect(tile.xMm,tile.yMm,tile.widthMm,tile.heightMm),`${surface.id}/field/modular/r${row}c${col}/t${index}`);
+      },gap=>{
+        fieldRegions.forEach(region=>{const part=intersectRects(gap,region);if(part)layout.joints.push(part);});
+      });
+      if(layout.placements.length>MAX_GRID_CELLS*4)throw new Error("Too many clipped pieces. Choose larger tiles.");
+    }else grid("field", "field", usable, fieldRegions, installation.field.tileAssetId, installation.field.orientation, installation.field.pattern, installation.field.secondaryTileAssetId);
   } catch (reason) { return { ok: false, errors: [reason instanceof Error ? reason.message : "Design could not be compiled."] }; }
   layout.tileAreaMm2 = layout.placements.reduce((sum, p) => sum + rectArea(p), 0);
   layout.jointAreaMm2 = layout.joints.reduce((sum, r) => sum + rectArea(r), 0);

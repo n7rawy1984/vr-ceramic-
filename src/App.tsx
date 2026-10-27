@@ -1,5 +1,6 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { XR, useXR } from "@react-three/xr";
+import { useStore } from "zustand";
 import { Suspense, useState, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
@@ -59,12 +60,15 @@ export default function App() {
   useEffect(()=>{void localTileLibrary.hydrate();},[]);
   const [sceneReady, setSceneReady] = useState(false);
   const floorImageError = useConfiguratorStore((s) => s.floorImageError);
+  const plan = useFloorDesignStore((s) => s.presentation === "layout");
+  const inSession = useStore(xrStore, (s) => s.session != null);
 
   return (
     <div className="app-root">
       <ErrorBoundary>
         <FloorDesignProvider>
         <Canvas
+          frameloop={plan && !inSession ? "demand" : "always"}
           shadows="variance"
           dpr={[1, 1.5]}
           camera={{ fov: 60, near: 0.05, far: 100, position: [0, 1.6, 1.6] }}

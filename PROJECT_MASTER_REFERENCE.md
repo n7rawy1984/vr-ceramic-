@@ -2,7 +2,9 @@
 
 Initial audit: **2026-10-25 (Asia/Dubai)**. Last implementation update: **2026-10-27**. Repository: `/home/nagham/vr-ceramic-configurator`.
 
-**Status: official master reference. Milestones 1/2 and the XR lifecycle fix are checkpoint `1c3a0b3` (clean at the start of the original M3 implementation). Milestone 3 — Geometric Tile Layout Engine is now implemented: Straight + Field + Center Frame + Center, one pure mm compiler, synchronized Canvas plan and grouped 3D geometry. Numeric tests, fixture browser acceptance, read-only live uploaded-asset rendering and two emulator enter/exit cycles were verified. Draft editing and atomic Apply Design are verified in §17B; geometry details and limits are in §17A and docs/GEOMETRIC_LAYOUT.md. Running Bond, Milestone 4 and project persistence are not authorized. No commit, push or deployment in this task.**
+**Status: official master reference. Milestones 1/2 and the XR lifecycle fix are checkpoint `1c3a0b3` (clean at the start of the original M3 implementation). Milestone 3 — Geometric Tile Layout Engine is now implemented: Straight + Field + Center Frame + Center, one pure mm compiler, synchronized Canvas plan and grouped 3D geometry. Numeric tests, fixture browser acceptance, read-only live uploaded-asset rendering and two emulator enter/exit cycles were verified. Draft editing and atomic Apply Design are verified in §17B; geometry details and limits are in §17A and docs/GEOMETRIC_LAYOUT.md. Milestone 4A now authorizes Main Field Straight, Running Bond 50%, Running Bond 33% and Checker; see §17D. Milestone 4B adds the explicitly authorized Multi-Size Modular preset; see §17E. Saved projects remain future work. No commit, push or deployment in this task.**
+
+**Current M4B override:** Main Field supports Straight / Grid, Running Bond 50%, Running Bond 33%, Checker and one neutral Multi-Size Modular preset. The latter has large square A, upright B, small C and optional small D with exact joint-aware physical dimensions. Existing local persistence, architecture, Simple-mode transition, shared compilation and batching remain in place. See §17E and [MODULAR_PATTERNS.md](docs/MODULAR_PATTERNS.md). Stop after M4B; no herringbone, wall tiling, quantities/waste, PDF, backend, AI or furniture editor work.
 
 **Current refinement override:** the urgent usability scope below supersedes historical memory-only upload and 4–12 m room limits. The active product uses one IndexedDB-backed local tile repository with no API calls, an explicit Simple/compiled render-mode transition, and draft/applied Room Settings for width/length/height, furniture, the right-wall window and Simple/Gypsum ceiling. Backend code remains inactive and preserved. See §17C and [refinement details](docs/USABILITY_REFINEMENT.md).
 
@@ -451,9 +453,47 @@ Authorized refinement only; no Running Bond, advanced patterns, quantities, PDF 
 
 Verification and exact changed-file inventory are recorded in [USABILITY_REFINEMENT.md](docs/USABILITY_REFINEMENT.md). No commit, push, deployment, remote SQL, backend debugging, dependency change or further roadmap work is authorized by this refinement.
 
+# 17D. Milestone 4A — Floor Patterns
+
+Explicitly authorized extension of the existing pure compiler and draft/applied installation. Supported `LayoutPattern` values: `straight`, `running-bond-50`, `running-bond-33`, `checker`. `field.tileAssetId` remains A; optional `field.secondaryTileAssetId` supplies Checker B. Default installation stays Straight with its original serialized shape.
+
+**Geometry:** apply orientation before computing effective horizontal pitch = laid body width + one full joint. Running Bond 50% uses `(row % 2) * pitch / 2`; 33% uses `(row % 3) * pitch / 3`. Offsets move along local horizontal X, rows advance along local Y; the modulo cycle avoids cumulative drift. A shifted row includes a leading negative-column body, then clips to existing field regions and preserves real source crops. Each row partitions pitch cells into bodies/right/bottom gaps. Checker chooses A/B by original row+column parity, including fragments around exclusions. No UV offset fakes the pattern.
+
+**Constraints:** Checker A/B share field orientation and must have equal physical body dimensions after orientation within the existing 0.000001 mm tolerance. Missing/invalid B or mismatched sizes rejects Apply with a clear message and retains the applied floor. Slots may reference the same asset (uniform result). Center > Center Frame > Field, frame/corner/center algorithms, joint semantics, 10,000 candidate-cell / 40,000 piece guards and physical scale remain unchanged. Pattern applies only to Main Field, including a frame opening when Center is disabled.
+
+**State/UI/safety:** Pattern dropdown stays draft-only; only Checker exposes Field Tile A/B. Shared built-in/IndexedDB assets feed both slots. Existing Apply validates once, publishes atomically and reuses the compiled result. Deleting a referenced Checker A/B falls back to a valid Straight field (retaining A if available, otherwise first built-in) and removes a missing B reference; existing Simple/Compare/zone reconciliation remains. Catalog selection still explicitly exits the compiled renderer.
+
+**Architecture/performance:** LayoutPlan and AdvancedFloor are unchanged consumers of one compiler result. Shared clipping/crop/joint generation avoids pattern duplication. One merged material batch per unique asset plus grout; no per-tile React nodes or render loops. No room/window/furniture/ceiling, IndexedDB, backend, XR or dependency redesign. Only required Checker deletion compatibility changes the design store.
+
+**Native verification:** eight full compile results captured before M4A match SHA-256 goldens exactly. Eighteen new cases cover both Running Bond orientations/cycles/crops/joints, drift-free phases, Checker parity/dimensions/assets, central exclusions, Center-off frame opening, deterministic output, complete non-overlapping area coverage, large rooms, zero joints, unchanged safety limits, source immutability and deletion fallback. Existing 46 cases remain passing (64 total). TypeScript, lint, build and tests passed with the existing bundle-size warnings.
+
+**Browser verification:** all four patterns passed Top/Floor/Overview/Layout at 5.4×7.2 m, 600×600 field, 100 mm Dark Stone frame, 1200×1200 uploaded center and 2 mm joints. All 16 captures were inspected. Canvas clips exactly matched compiled placements; maximum 3D Float32 vertex difference was 0.000096639 mm and UV difference 2.9141e-8. Render counts: Straight 119 pieces/4 meshes, Bond50 124/4, Bond33 127/4, Checker 119/5 (unique assets + grout; not purchasing quantities). Mixed uploaded/built-in Checker, mismatched-size Apply rejection, A/B deletion fallback and Running Bond → Simple passed. Precise V8 coverage measured 0 draft compiles, 1 compile and 1 publication per valid Apply for every pattern; invalid Checker Apply published nothing. Production and profiler runs recorded zero API calls and runtime exceptions. Software WebGL/test-only DPR 0.5; no hardware-performance, headset or deployed-Vercel claim. Full file inventory and details: [FLOOR_PATTERNS.md](docs/FLOOR_PATTERNS.md).
+
+The separately authorized M4B implementation follows in §17E. Herringbone, quantities, PDF and backend work remain future scope. No commit, push or deployment.
+
+# 17E. Milestone 4B — Multi-Size Modular
+
+One neutral five-body `modular` / `multi-size` repeat is implemented; this is not an exact Versailles preset. The original field asset/orientation supplies large square A; optional `field.modular` supplies required B/C and optional D with independent asset/orientation references. Body sizes still resolve from the shared physical asset adapter. No duplicate size authoring, stretching or texture-only pattern.
+
+**Exact family:** with square A side L and full joint j, small side s=(L−j)/2. B is laid s×L, C/D s×s. Repeat positions are A(0,0), B(L+j,0), C(0,L+j), C(s+j,L+j), D-or-C(2(s+j),L+j). Pitch is 3(s+j) on both axes, with one owned trailing right/bottom seam. Example L=600, j=2: A600², B299×600, C/D299², body extent901, pitch903 mm. A600/B300/C300 with j2 is rejected, because it does not physically close. Exact nominal sizes are required within only the 0.000001 mm arithmetic epsilon; 599/601 manufacturing deviations are rejected, never scaled. Upload metadata retains 0.001 mm precision. Each slot can rotate0/90; B must remain upright after rotation. Module axes stay fixed.
+
+**Compiler/UI:** pure module definition/validation and reusable repeat enumeration feed the compiler's shared body clipping/crop emitter. Partial modules are clipped against room/center/frame field regions, preserving Center > Center Frame > Field and the field-filled frame opening. Integer indices multiply physical pitches without accumulating drift. Internal/seam joint rectangles partition the same regions. UI shows the preset, expected physical size per shared library selector, per-slot orientation and optional D. Compatible B/C are suggested; final Apply validates exactly. Deleting any used modular asset safely restores Straight and cleans unavailable references. No change to IndexedDB or backend.
+
+**Performance:** the shared 10000-cell budget counts all five candidate bodies per repeat before enumeration, including partial/excluded modules when field remains; entirely occupied fields skip enumeration as the existing grid does. The 40000 clipped-piece cap is unchanged. Canvas plan / merged 3D asset batches remain unchanged consumers of one result. No per-tile React components, extra render loop, dependency or room/XR-store redesign. A browser assertion exposed the existing Canvas reconfiguration default resetting an already-open plan to `always` on Apply: Canvas now receives the plan/XR loop policy explicitly; SceneActivity invalidates only. Plan without a session uses demand, Room or XR uses always.
+
+**Native verification:** 14 modular cases + 64 existing cases pass (78 total); eight pre-M4A full Straight hashes still match. Hand-authored golden: 903×903 repeat, five exact bodies and six disjoint joint rectangles. Additional coverage: source crops/rotation, optional D, exact joint-aware compatibility, invalid/missing slots, deterministic output, no body/joint overlap and complete area, all Center/Frame/perimeter combinations, 3×4/8×10/15×20 m rooms, meter-buffer conversion, unchanged safety limits, mixed built-in/local adapters and deletion of each slot. TypeScript/lint/production build/npm test pass; existing bundle warnings remain.
+
+**Production geometry verification:** mixed built-in/local A/B/C/D with rotated B and center/frame, optional D removal, invalid-size Apply retention, and 5.4×7.2→3×4 m resize pass. Canvas clip rectangles exactly match the compiler; maximum 3D Float32 position error 0.000118256 mm, UV error 2.7816e-8. Large composition:250 pieces/7 meshes with six assets; sharing A with Center and omitting D:250/5 with four assets. Resized:85/5. Plan remains demand after Apply. Layout/Top/Room captures inspected. Zero API calls or runtime exceptions. Source profiler:0 modular draft compiles/publications,1 compile +1 publication per valid Apply (including optional D removal), invalid size Apply compiles once and publishes nothing. Software WebGL/test-only DPR0.5; no hardware/deployment claim.
+
+**Workflow/XR verification:** the production camera matrix Top/Floor/Overview/Detail/Reset, used-slot deletion → valid Straight, catalog → actual Simple mesh, and IndexedDB refresh retention pass with zero API calls/runtime exceptions. Geometry and workflow run separately against one isolated fixture profile to stay within software-renderer harness limits. Two opt-in XR cycles preserve the modular installation, camera and 75 visible pieces; exit restores plan demand mode, Room restores continuous rendering and Floor/Reset work. Each exit has7 frame subscribers,0 XR input sources,1 canvas. Existing emulator offer-superseded console messages occurred; no unexpected runtime exceptions or API calls. XR test-only framebuffer scale0.25 and disabled shadows supplement DPR0.5; no physical-headset/hardware-performance claim.
+
+Final rebuilt-bundle smoke passes:3×4 m modular floor,75 pieces/4 meshes, Canvas parity and demand mode. Final-source profiler reconfirms0 draft compiles and1 valid-Apply compile/publication; both runs record zero API calls/runtime exceptions.
+
+Full format contract, tests and M4B file inventory: [MODULAR_PATTERNS.md](docs/MODULAR_PATTERNS.md). Pre-existing uncommitted M4A changes remain. No commit, push, deployment or later milestone.
+
 # 18. Pattern Engine Vision
 
-Initial: Straight; horizontal/vertical orientation; 50% and 33% Running Bond; Checker. Later: multi-size modular, Herringbone, Chevron, Basketweave, custom definitions. Patterns specify tile slots or placement rules, not painted textures. Slot-to-TileAsset assignments enable different SKUs and sizes. Compiler handles row offsets, orientation, grout pitch and clipping. Start with Straight then Running Bond; do not build all patterns simultaneously.
+Implemented in M4A (§17D): Straight; 0°/90° orientation; 50% and 33% Running Bond; equal-size Checker. M4B adds Multi-Size Modular (§17E). Later: Herringbone, Chevron, Basketweave, custom definitions. Patterns specify tile slots or placement rules, not painted textures. Slot-to-TileAsset assignments enable different SKUs and sizes. Compiler handles row offsets, orientation, grout pitch and clipping. Preserve the M4A semantics and tests when defining future pattern slots; do not start future patterns automatically.
 
 # 19. Zone Engine Vision
 
@@ -565,9 +605,17 @@ Neither is implemented or authorized now. No dedication intro should be restored
 
 ### Milestone 3 — Geometric Tile Layout Engine
 
-**Implemented/verified:** focused mm domain, Straight Field/Center Frame/Center, deterministic geometric bodies/cuts/joints, one compiler result, single-Canvas plan, grouped 3D renderer and mandatory numeric tests. See §17A. This explicit scope supersedes the old roadmap: Running Bond is not included or authorized.
+**Implemented/verified:** focused mm domain, Straight Field/Center Frame/Center, deterministic geometric bodies/cuts/joints, one compiler result, single-Canvas plan, grouped 3D renderer and mandatory numeric tests. See §17A. M3 itself excluded Running Bond; the later explicit M4A authorization is recorded in §17D.
 
-### Milestone 4 — Multi-Tile + Zones
+### Milestone 4A — Floor Patterns
+
+Implemented in §17D: Main Field Straight, Running Bond 50%, Running Bond 33% and equal-size Checker. Existing Frame/Center and shared render consumers remain intact.
+
+### Milestone 4B — Multi-Size Modular Patterns
+
+Implemented by explicit authorization in §17E: one controlled joint-aware multi-size repeat with up to four shared asset slots. More modular presets require separate specification and verification.
+
+### Broader Multi-Tile + Zones (future)
 
 Multiple tile assets; pattern slots; Field; Border; Center/Inset; Accent Strip. Explicit overlap/corner/cut behavior.
 
@@ -579,7 +627,7 @@ Multiple faces; cut edges; performance; better texture pipeline. Measure renderi
 
 Quantity; waste; design alternatives; screenshots; dimensioned PDF/project summary. Validate calculations against compiled geometry and supplier packaging assumptions. Automated geometry correctness coverage in §20 is mandatory before compiler results power quantities or technical output.
 
-Milestones 1–3 are explicitly authorized and implemented as documented. Live M3 read/apply/render was verified, while write regressions used the fixture; Vercel deployment/routing remains unverified in this task. Stop here. Running Bond and milestones 4–6 are future work, not authorization.
+Milestones 1–3, usability refinement, M4A and M4B are explicitly authorized and implemented as documented. Historical live/fixture limits remain attributed to their sessions; local verification does not verify a deployment or backend. Stop after M4B; broader patterns/zones, realism/QA expansion and output remain future work requiring explicit authorization.
 
 # 27. Immediate Execution Sequence
 
@@ -645,8 +693,8 @@ Steps 1–5 are preserved from M1/M2. The explicit M3 request implemented the fo
 1. Read `PROJECT_MASTER_REFERENCE.md` first for approved product direction and architecture decisions. The unchanged draft and PROJECT_HANDOFF are historical context; this master supersedes explicit disagreements. Verify implementation in actual source and label user-confirmed operational facts.
 2. Inspect `git status`, preserving pre-existing user changes and untracked documents.
 3. Verify relevant source before changing anything; code establishes current behavior.
-4. Milestones 1–3 and fixture/live limits are recorded here. Stop after current M3; do not start Running Bond, Milestone 4, accounts or broader persistence/layout authoring automatically.
-5. Preserve VR unless the user explicitly reactivates it; later feed it the shared compiled layout.
+4. Milestones 1–3, usability refinement, M4A and M4B are recorded here. Stop after M4B; do not start more presets, herringbone, wall tiling, quantities/waste, PDF, AI, accounts or broader persistence/backend work automatically.
+5. Preserve existing VR and its shared compiled floor; do not redesign VR UX without explicit authorization.
 6. Never infer that roadmap items are already implemented, or that hardware validation occurred.
 7. Update the master reference after major architecture milestones with the user's authorized scope.
 8. Keep implemented/source-verified, runtime-tested, hardware-tested and future-plan claims separate. Resolve docs/code disagreements explicitly.

@@ -1,0 +1,482 @@
+[
+  {
+    "name": "plain",
+    "surface": {
+      "id": "floor",
+      "widthMm": 6000,
+      "heightMm": 7000
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": false,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "ee5d247deeb2427e3785f61004a22376035bebfb61d95055a324ccb04375e4e4"
+  },
+  {
+    "name": "partial-rotated",
+    "surface": {
+      "id": "floor",
+      "widthMm": 5400,
+      "heightMm": 7200
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "rect",
+        "pattern": "straight",
+        "orientation": 90
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": false,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "87eef5b7ec868b319e5b89ee8db21cbd3d7c0fa91e2316a92ce9f73f630755ec"
+  },
+  {
+    "name": "center-frame",
+    "surface": {
+      "id": "floor",
+      "widthMm": 6000,
+      "heightMm": 7000
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": true,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": true,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "61dd066b825492f24932bcb81ce6f121a4e6a34059f2d13e4921b07d89f2ba72"
+  },
+  {
+    "name": "frame-field-opening",
+    "surface": {
+      "id": "floor",
+      "widthMm": 5400,
+      "heightMm": 7200
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": true,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": false,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "56fb48cd3d2344b609818348c26d38ea48f66085cd6178e0c00cacd7fce9504b"
+  },
+  {
+    "name": "center-only",
+    "surface": {
+      "id": "floor",
+      "widthMm": 3000,
+      "heightMm": 4000
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": true,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "33f3204bae387c866b6d104ea784f9a45f0ca0762c68e4b3bddfe7e212527912"
+  },
+  {
+    "name": "legacy-perimeter",
+    "surface": {
+      "id": "floor",
+      "widthMm": 6000,
+      "heightMm": 7000
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": true,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": true,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "267b734f4adff3414d68e08ab2c637456d3907ff8a0be7d5713d53c7d51710fa"
+  },
+  {
+    "name": "zero-joint",
+    "surface": {
+      "id": "floor",
+      "widthMm": 1200,
+      "heightMm": 1200
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 0,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": false,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "367523109cac6738f1e312806b53ed44c99ca68735b7e41b07aa7bb16f1c400c"
+  },
+  {
+    "name": "ends-in-joint",
+    "surface": {
+      "id": "floor",
+      "widthMm": 1205,
+      "heightMm": 603
+    },
+    "installation": {
+      "surfaceId": "floor",
+      "jointWidthMm": 3,
+      "field": {
+        "tileAssetId": "field",
+        "pattern": "straight",
+        "orientation": 0
+      },
+      "border": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "centerFrame": {
+        "enabled": false,
+        "tileAssetId": "frame",
+        "widthMm": 100,
+        "orientationRule": "follow-side"
+      },
+      "center": {
+        "enabled": false,
+        "tileAssetId": "center",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "position": "center",
+        "orientation": 0
+      }
+    },
+    "assets": [
+      {
+        "id": "field",
+        "widthMm": 600,
+        "heightMm": 600
+      },
+      {
+        "id": "rect",
+        "widthMm": 300,
+        "heightMm": 600
+      },
+      {
+        "id": "frame",
+        "widthMm": 100,
+        "heightMm": 600
+      },
+      {
+        "id": "center",
+        "widthMm": 1200,
+        "heightMm": 1200
+      }
+    ],
+    "sha256": "394a680f46eaf4397f54fc3ea5a530b1af8faaeeab059e2c7e340f220dccefa9"
+  }
+]

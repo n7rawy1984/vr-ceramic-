@@ -1,0 +1,25 @@
+/** Production preview, isolated CDP profile, generated local tiles; never a live backend. */
+import assert from 'node:assert/strict';
+import {browser} from './cdp.mjs';
+const {send,evaluate,until,click,button,field,shot,listeners,close}=await browser();
+const url=process.argv[2]??'http://127.0.0.1:5187';assert(['localhost','127.0.0.1'].includes(new URL(url).hostname));
+const api=[],errors=[];
+listeners.push(e=>{if(e.method==='Runtime.exceptionThrown')errors.push(e.params.exceptionDetails.exception?.description);if(e.method==='Network.requestWillBeSent'&&new URL(e.params.request.url).pathname.startsWith('/api/'))api.push(e.params.request.url);if(e.method==='Page.javascriptDialogOpening')void send('Page.handleJavaScriptDialog',{accept:true});});
+const settle=()=>evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+try{
+ await send('Page.enable');await send('Runtime.enable');await send('Network.enable');await send('Network.setBlockedURLs',{urls:['*/api/*']});await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+ await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.roots=new Set();window.__REACT_DEVTOOLS_GLOBAL_HOOK__={supportsFiber:true,renderers:new Map(),inject(v){this.renderers.set(this.renderers.size+1,v);return this.renderers.size},onCommitFiberRoot(i,r){roots.add(r)},onCommitFiberUnmount(){}};window.planRects=[];window.planImages=0;const clear=CanvasRenderingContext2D.prototype.clearRect,rect=CanvasRenderingContext2D.prototype.rect,draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.clearRect=function(...a){if(this.canvas.hasAttribute('data-placement-count'))planRects=[];return clear.apply(this,a)};CanvasRenderingContext2D.prototype.rect=function(...a){if(this.canvas.hasAttribute('data-placement-count'))planRects.push(a);return rect.apply(this,a)};CanvasRenderingContext2D.prototype.drawImage=function(...a){if(this.canvas.hasAttribute('data-placement-count'))planImages++;return draw.apply(this,a)};`});
+ await send('Page.navigate',{url});await until(`!!document.querySelector('.hud')&&!document.querySelector('.loading-screen')`);
+ await evaluate(`(()=>{function find(f,p){if(!f)return;const v=f.memoizedProps?.value;if(v&&p(v))return v;return find(f.child,p)||find(f.sibling,p)}window.ctx=()=>[...roots].map(x=>find(x.current,v=>v.result&&v.products&&v.applyDraft)).find(Boolean);window.r=[...roots].map(x=>find(x.current,v=>!!v.getState?.()?.scene)).find(Boolean);if(!r||!ctx())throw Error('Scene/context missing');const d=r.getState().setDpr;r.setState({setDpr:()=>d(.5)});d(.5)})()`);
+ // Run after modular-patterns.mjs using the same isolated profile/origin.
+ const products=await evaluate('ctx().products.map(p=>({id:p.id,name:p.name}))');const id=name=>products.find(p=>p.name===name).id;
+ const a=id('M4B Large'),b=id('M4B Medium rotated'),c=id('M4B Small');
+ await button('Floor Design');await field('Room width (m)',3);await field('Room length (m)',4);await field('Main field tile',a);await field('Full joint width (mm)',2);await field('Pattern','modular');await field('Modular Tile B',b);await field('Tile B orientation',90);await field('Modular Tile C',c);await button('Apply Design');await until(`ctx().result.ok&&ctx().result.layout.placements.some(p=>p.segment==='modular')`);
+ await button('Close');for(const view of ['Top','Floor','Overview','Detail','Reset']){await button(view);await settle();await until('r.getState().controls.enabled');if(view==='Top')await shot('ceramic-m4b-top');}await shot('ceramic-m4b-room');
+ // Return to editor, delete a used small slot via the actual library, retain a usable floor.
+ await button('My Tiles · Add Tile');await click(`[...document.querySelectorAll('.saved-tile-card')].find(e=>e.querySelector('h4').textContent==='M4B Small').querySelector('.tile-delete')`);await until(`document.querySelectorAll('.saved-tile-card').length===3`);await button('Close');await button('Floor Design');assert.equal(await evaluate(`document.querySelector('[aria-label=Pattern]').value`),'straight');assert.equal(await evaluate('ctx().result.ok'),true);await button('Close');
+ await click(`[...document.querySelectorAll('.ceramic-card')].find(e=>e.querySelector('.ceramic-name').textContent==='Carrara White')`);await until(`!!r.getState().scene.getObjectByName('floor')?.material.map&&!r.getState().scene.getObjectByName('compiled-floor')`);
+ // IndexedDB remains shared and refreshable; configuration itself is intentionally session-local.
+ await send('Page.reload');await until(`!!document.querySelector('.hud')&&!document.querySelector('.loading-screen')`);await button('My Tiles · Add Tile');await until(`document.querySelectorAll('.saved-tile-card').length===3`);assert.deepEqual(api,[]);assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({production:true,views:['Top','Floor','Overview','Detail','Reset'],deletionFallback:true,simpleTransition:true,indexedDBRefresh:true,zeroAPI:true,errors},null,2));
+}finally{close()}
