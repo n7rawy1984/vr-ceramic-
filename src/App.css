@@ -635,3 +635,7 @@
 .design-fields { flex:1; min-height:0; overflow:auto; padding-right:4px; }
 .floor-design-panel > header,.floor-design-panel > .design-mode-actions { flex-shrink:0; }
 .design-action-footer .design-error { max-height:100px; overflow:auto; margin-bottom:8px; }
+
+.room-settings-dialog { width:min(400px,calc(100vw - 24px)); height:min(780px,calc(100dvh - 32px)); padding:0; border:0; border-radius:16px; background:#1e232a; color:#f1f5f9; color-scheme:dark; }
+.room-settings-dialog::backdrop { background:#070a1077; }
+.room-settings-dialog .floor-design-panel { border-radius:16px; }

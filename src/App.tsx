@@ -1,10 +1,13 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { XR, useXR } from "@react-three/xr";
-import { Suspense, useState, useRef } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { useConfiguratorStore } from "./state/useConfiguratorStore";
-import { ROOM } from "./scene/roomConfig";
+import { useRoom } from "./scene/useRoom";
+import { useFloorDesignStore } from "./state/useFloorDesignStore";
+import { localTileLibrary } from "./tiles/demoLibrary";
+import { RoomSettings } from "./ui/RoomSettings";
 import "./App.css";
 import { DesktopControls } from "./scene/DesktopControls";
 import { Furniture } from "./scene/Furniture";
@@ -38,6 +41,8 @@ function SceneControls() {
 /** Desktop inspection visibility never hides architecture inside XR. Keep the
  * overhead group hidden until the camera has descended back into the room. */
 function Showroom() {
+  const ROOM=useRoom();
+  const furniture=useFloorDesignStore(s=>s.architecture.furnitureVisible);
   const inSession = useXR((s) => s.session != null);
   const top = useConfiguratorStore((s) => s.cameraView === "top");
   const overheadRef = useRef<Group>(null);
@@ -46,11 +51,12 @@ function Showroom() {
   });
   return <>
     <Room overheadRef={overheadRef} />
-    <Furniture visible={inSession || !top} />
+    {furniture&&<Furniture visible={inSession || !top} />}
   </>;
 }
 
 export default function App() {
+  useEffect(()=>{void localTileLibrary.hydrate();},[]);
   const [sceneReady, setSceneReady] = useState(false);
   const floorImageError = useConfiguratorStore((s) => s.floorImageError);
 
@@ -78,6 +84,7 @@ export default function App() {
         <Hud />
         <CeramicCatalog />
         <FloorDesign />
+        <RoomSettings />
         {floorImageError && <div className="floor-image-error" role="alert">{floorImageError}</div>}
       </FloorDesignProvider>
       </ErrorBoundary>

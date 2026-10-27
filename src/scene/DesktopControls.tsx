@@ -1,3 +1,4 @@
+import { presetPose, type Pose } from "./cameraPresets";
 import { useRoom } from "./useRoom";
 import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -16,32 +17,7 @@ const scratchForward = new THREE.Vector3();
 const scratchRight = new THREE.Vector3();
 const scratchMove = new THREE.Vector3();
 
-type Pose = { position: THREE.Vector3; target: THREE.Vector3; fov: number };
 type Tween = { from: Pose; to: Pose; start: number };
-
-function presetPose(view: string, aspect: number, ROOM: {width:number;length:number}): Pose {
-  const scale=Math.max(ROOM.width/6,ROOM.length/7);
-  if (view === "top") {
-    const fov = 45;
-    // Fit both dimensions, including portrait screens. Tiny Z offset avoids
-    // the lookAt singularity at the exact pole; this is a visual inspection.
-    const height = Math.max(ROOM.length / 2, ROOM.width / 2 / aspect) /
-      Math.tan(THREE.MathUtils.degToRad(fov / 2)) * 1.22;
-    return { position: new THREE.Vector3(0, height, 0.001), target: new THREE.Vector3(), fov };
-  }
-  if (view === "floor") return {
-    position: new THREE.Vector3(0, 2.45 * scale, ROOM.length / 2 - 0.65),
-    target: new THREE.Vector3(0, 0, -0.1), fov: 52,
-  };
-  if (view === "detail") return {
-    position: new THREE.Vector3(0.65, 1.15, 1.8),
-    target: new THREE.Vector3(0.1, 0, 0.5), fov: 48,
-  };
-  return {
-    position: new THREE.Vector3(0.8, 2.65 * scale, ROOM.length / 2 - 0.4),
-    target: new THREE.Vector3(-0.3, 0, -0.9), fov: 58,
-  };
-}
 
 /** Small command-driven camera: presets rest untouched, transitions own their
  * live radius, and only deliberate room navigation enters free look/walk. */
@@ -69,12 +45,15 @@ export function DesktopControls() {
     const controls = controlsRef.current;
     if (!controls || !(camera instanceof THREE.PerspectiveCamera)) return;
     const state = useConfiguratorStore.getState();
-    const roomKey = `${ROOM.width}/${ROOM.length}`;
+    const roomKey = `${ROOM.width}/${ROOM.length}/${ROOM.height}`;
     const resized=lastRoomSize.current!==roomKey;
     if (initialized.current && !resized && lastRequest.current === requestToken && state.cameraView !== "top") return;
     lastRoomSize.current=roomKey;
     if(resized) savedRoom.current=null;
     lastRequest.current = requestToken;
+    camera.near=Math.max(.00001,Math.min(.05,ROOM.width/100,ROOM.length/100,ROOM.height/100));
+    camera.far=Math.max(100,ROOM.width*5,ROOM.length*5,ROOM.height*4);
+    camera.updateProjectionMatrix();
     let destination = presetPose(state.cameraView, size.width / size.height, ROOM);
     if (!resized && state.cameraRequestKind === "return" && savedRoom.current) {
       destination = savedRoom.current.pose;
@@ -108,7 +87,7 @@ export function DesktopControls() {
     // Commands, not mode changes from free navigation, start camera motion.
     // Resize reframes Top to keep the full floor visible at either aspect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestToken, camera, size.width, size.height, ROOM.width, ROOM.length]);
+  }, [requestToken, camera, size.width, size.height, ROOM.width, ROOM.length, ROOM.height]);
 
   const enterFree = () => {
     const controls = controlsRef.current;
@@ -191,11 +170,13 @@ export function DesktopControls() {
       if (scratchMove.lengthSq() > 0) {
         if (activeView.current !== "free") enterFree();
         scratchMove.normalize().multiplyScalar(MOVE_SPEED * Math.min(delta, 0.05));
-        const x = THREE.MathUtils.clamp(camera.position.x + scratchMove.x, -ROOM.width / 2 + MARGIN, ROOM.width / 2 - MARGIN);
-        const z = THREE.MathUtils.clamp(camera.position.z + scratchMove.z, -ROOM.length / 2 + MARGIN, ROOM.length / 2 - MARGIN);
+        const margin=Math.min(MARGIN,ROOM.width*.1,ROOM.length*.1);
+        const eyeHeight=Math.min(1.6,ROOM.height*.6);
+        const x = THREE.MathUtils.clamp(camera.position.x + scratchMove.x, -ROOM.width / 2 + margin, ROOM.width / 2 - margin);
+        const z = THREE.MathUtils.clamp(camera.position.z + scratchMove.z, -ROOM.length / 2 + margin, ROOM.length / 2 - margin);
         // Change eye height only when the user actually walks. Preserve pitch.
-        controls.target.add(scratchMove.set(x - camera.position.x, 1.6 - camera.position.y, z - camera.position.z));
-        camera.position.set(x, 1.6, z);
+        controls.target.add(scratchMove.set(x - camera.position.x, eyeHeight - camera.position.y, z - camera.position.z));
+        camera.position.set(x, eyeHeight, z);
       }
     }
     controls.update();

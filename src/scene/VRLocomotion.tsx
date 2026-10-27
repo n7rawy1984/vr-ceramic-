@@ -16,7 +16,7 @@ import { VRToolbar } from "./vr-ui/VRToolbar";
  */
 export function VRLocomotion() {
   const ROOM = useRoom();
-  const VR_SPAWN = useMemo<[number,number,number]>(()=>[0,0,ROOM.length/2-.9],[ROOM.length]);
+  const VR_SPAWN = useMemo<[number,number,number]>(()=>[0,0,ROOM.length/2-Math.min(.9,ROOM.length*.2)],[ROOM.length]);
   const originRef = useRef<Group>(null);
   const returnToStartToken = useConfiguratorStore((s) => s.vrReturnToStartToken);
 

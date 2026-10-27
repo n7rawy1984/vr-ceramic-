@@ -1,7 +1,7 @@
+import { useFloorDesignStore } from "../state/useFloorDesignStore";
 import { useRoom } from "./useRoom";
 import { useEffect, useRef } from "react";
 import type { DirectionalLight, Object3D } from "three";
-import { WINDOW } from "./roomConfig";
 
 /**
  * Neutral showroom lighting: one shadow-casting key aligned with the window so
@@ -12,7 +12,8 @@ import { WINDOW } from "./roomConfig";
  */
 export function Lighting() {
   const ROOM = useRoom();
-  const shadowExtent=Math.max(ROOM.width,ROOM.length);
+  const windowOffset=useFloorDesignStore(s=>s.architecture.window.offsetMm)/1000;
+  const shadowExtent=Math.max(ROOM.width,ROOM.length,ROOM.height);
   const halfW = ROOM.width / 2;
   const sunRef = useRef<DirectionalLight>(null);
   const sunTargetRef = useRef<Object3D>(null);
@@ -25,7 +26,7 @@ export function Lighting() {
       sunRef.current.target = sunTargetRef.current;
     }
     sunRef.current?.shadow.camera.updateProjectionMatrix();
-  }, [ROOM.width,ROOM.length]);
+  }, [ROOM.width,ROOM.length,ROOM.height]);
 
   return (
     <>
@@ -40,13 +41,13 @@ export function Lighting() {
           room in the same direction a customer would actually see. */}
       <directionalLight
         ref={sunRef}
-        position={[halfW + 2.2, ROOM.height + 1.4, WINDOW.sillHeight + 0.6]}
+        position={[halfW + 2.2, ROOM.height + 1.4, -windowOffset]}
         intensity={1.6}
         color="#ffffff"
         castShadow
         shadow-mapSize={[1024, 1024]}
-        shadow-camera-near={1}
-        shadow-camera-far={40}
+        shadow-camera-near={Math.min(1,ROOM.height/10)}
+        shadow-camera-far={Math.max(40,shadowExtent*4)}
         shadow-camera-left={-shadowExtent}
         shadow-camera-right={shadowExtent}
         shadow-camera-top={shadowExtent}
@@ -59,7 +60,7 @@ export function Lighting() {
       {/* Neutral interior fill near the ceiling, no shadow (keeps light/shadow
           casters to a single one for Quest headroom). */}
       <pointLight
-        position={[0, ROOM.height - 0.3, 0]}
+        position={[0, ROOM.height*.85, 0]}
         intensity={0.85}
         distance={Math.max(10,shadowExtent*1.5)}
         decay={2}

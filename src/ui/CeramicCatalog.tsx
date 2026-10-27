@@ -4,6 +4,8 @@ import type { MaterialFinish } from "../catalog/types";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
 import { useFloorDesignStore } from "../state/useFloorDesignStore";
 import { TileLibrary } from "./TileLibrary";
+import { useTileProducts } from "../tiles/useTileProducts";
+import { selectSimpleMaterial } from "../state/selectSimpleMaterial";
 import { CeramicThumbnail } from "./CeramicThumbnail";
 
 const FINISH_LABEL: Record<MaterialFinish, string> = {
@@ -21,18 +23,18 @@ const FINISH_LABEL: Record<MaterialFinish, string> = {
 export function CeramicCatalog() {
   const designEnabled = useFloorDesignStore(s=>s.enabled);
   const simpleMaterial = useFloorDesignStore(s=>s.setEnabled);
-  const uploadedProducts = useConfiguratorStore((s) => s.uploadedProducts);
+  const products = useTileProducts();
   const [libraryOpen, setLibraryOpen] = useState(false);
   const selectedFloorId = useConfiguratorStore((s) => s.selectedFloorId);
   const previousFloorId = useConfiguratorStore((s) => s.previousFloorId);
   const compareActive = useConfiguratorStore((s) => s.compareActive);
-  const setSelectedFloorId = useConfiguratorStore((s) => s.setSelectedFloorId);
+
   const toggleCompare = useConfiguratorStore((s) => s.toggleCompare);
 
   const [isOpen, setIsOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth >= 640));
 
-  const selected = getProductById(selectedFloorId, uploadedProducts) ?? FLOOR_CERAMICS[0];
-  const previous = previousFloorId ? getProductById(previousFloorId, uploadedProducts) : undefined;
+  const selected = getProductById(selectedFloorId, products) ?? FLOOR_CERAMICS[0];
+  const previous = previousFloorId ? getProductById(previousFloorId, products) : undefined;
   // Whichever product is actually on the floor right now — the previous one
   // while Compare is active, otherwise the real selection.
   const displayed = compareActive && previous ? previous : selected;
@@ -87,22 +89,22 @@ export function CeramicCatalog() {
         </button>
       )}
 
-      {designEnabled&&<div className="catalog-design-note">Floor Design is active. Set its tiles in the design panel. <button className="hud-button" onClick={()=>simpleMaterial(false)}>Simple material / Compare</button></div>}
+      {designEnabled&&<div className="catalog-design-note">Floor Design is active. Set its tiles in the design panel. <button className="hud-button" onClick={()=>{simpleMaterial(false);useConfiguratorStore.setState({compareActive:false});}}>Simple material / Compare</button></div>}
       <button className="hud-button tile-library-button" onClick={() => setLibraryOpen(true)}>My Tiles · Add Tile</button>
       <div className="catalog-cards">
-        {FLOOR_CERAMICS.map((product) => {
+        {products.map((product) => {
           const active = product.id === displayed.id;
           return (
             <button
               key={product.id}
               className={`ceramic-card${active ? " active" : ""}`}
-              onClick={() => setSelectedFloorId(product.id)}
+              onClick={() => selectSimpleMaterial(product.id)}
               aria-pressed={active}
             >
               <CeramicThumbnail product={product} />
               <div className="ceramic-card-info">
                 <span className="ceramic-name">{product.name}</span>
-                <span className="ceramic-code">{product.code}</span>
+                <span className="ceramic-code">{product.source==='upload'?'My Tiles':product.code}</span>
                 <span className="ceramic-size">
                   {product.tileWidth} × {product.tileHeight} cm
                   {product.finish ? ` · ${FINISH_LABEL[product.finish]}` : ""}

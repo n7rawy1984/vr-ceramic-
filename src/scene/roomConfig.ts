@@ -1,4 +1,4 @@
-import type { RoomDesign } from "../catalog/types";
+import type { RoomDesign } from "../catalog/types.ts";
 
 /**
  * The default room preset. Runtime dimensions are canonical mm in the design store;

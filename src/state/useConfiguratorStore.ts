@@ -1,11 +1,13 @@
 import { create } from "zustand";
-import type { MaterialProduct } from "../catalog/types";
-import { FLOOR_CERAMICS } from "../catalog/materials";
+import type { MaterialProduct } from "../catalog/types.ts";
+import { FLOOR_CERAMICS } from "../catalog/materials.ts";
 
 export type DesktopView = "room" | "floor" | "top" | "detail" | "free";
 
 interface ConfiguratorState {
+  /** Reserved for the preserved, inactive server library. Local consumers use the asset repository. */
   uploadedProducts: MaterialProduct[];
+  reconcileAssetIds: (ids: Set<string>) => void;
   setUploadedProducts: (products: MaterialProduct[]) => void;
   floorImageError: string | null;
   setFloorImageError: (error: string | null) => void;
@@ -42,6 +44,7 @@ interface ConfiguratorState {
 
 export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   uploadedProducts: [],
+  reconcileAssetIds: ids => set(s => ({selectedFloorId:ids.has(s.selectedFloorId)?s.selectedFloorId:FLOOR_CERAMICS[0].id,previousFloorId:s.previousFloorId&&ids.has(s.previousFloorId)?s.previousFloorId:null,compareActive:s.previousFloorId&&ids.has(s.previousFloorId)?s.compareActive:false})),
   setUploadedProducts: (products) => set((s) => {
     const exists = (id: string | null) => id && [...FLOOR_CERAMICS, ...products].some(p => p.id === id);
     return {
@@ -57,7 +60,7 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
   previousFloorId: null,
   setSelectedFloorId: (id) => {
     const current = get().selectedFloorId;
-    if (id === current) return;
+    if (id === current) { set({compareActive:false}); return; }
     set({ selectedFloorId: id, previousFloorId: current, compareActive: false });
   },
 

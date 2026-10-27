@@ -35,7 +35,7 @@ function DraftControls() {
       <fieldset><legend>Room</legend>
         <label>Room width (m)<input aria-label="Room width (m)" type="number" step=".01" value={draft.width} onChange={e=>{setDraft(v=>({...v,width:e.target.value}));setErrors([]);}}/></label>
         <label>Room length (m)<input aria-label="Room length (m)" type="number" step=".01" value={draft.length} onChange={e=>{setDraft(v=>({...v,length:e.target.value}));setErrors([]);}}/></label>
-        <p className="design-hint">Rectangular room · each side 4–12 m. Edit the composition, then Apply Design. Tile bodies keep their physical sizes.</p>
+        <p className="design-hint">Positive physical dimensions. Height, window, ceiling and furniture are in Room Settings. Tile bodies keep their physical sizes.</p>
       </fieldset>
       <fieldset><legend>Main Field</legend>
         <AssetPicker zone="field" value={i.field.tileAssetId} onChange={id=>update(v=>({...v,field:{...v.field,tileAssetId:id}}))}/>
@@ -69,7 +69,7 @@ export function FloorDesign() {
     {plan&&<header className="plan-workspace-header"><div><strong>Layout</strong><span>Floor plan · millimeters</span></div><button className="hud-button" onClick={()=>s.setPresentation('room')}>Room</button></header>}
     <aside className="floor-design-panel" aria-label="Floor Design">
       <header><h2>Floor Design</h2><button className="hud-button" onClick={()=>{s.closePanel();if(plan)s.setPresentation('room');}} aria-label="Close Floor Design">Close</button></header>
-      <div className="design-mode-actions"><button className={`hud-button${s.enabled?' active':''}`} onClick={()=>s.setEnabled(!s.enabled)}>{s.enabled?'Use simple material':'Use floor design'}</button><button className="hud-button" onClick={()=>s.setPresentation(plan?'room':'layout')}>{plan?'Room':'Layout 2D'}</button></div>
+      <div className="design-mode-actions"><button className={`hud-button${s.enabled?' active':''}`} onClick={()=>{s.setEnabled(!s.enabled);useConfiguratorStore.setState({compareActive:false});}}>{s.enabled?'Use simple material':'Use floor design'}</button><button className="hud-button" onClick={()=>s.setPresentation(plan?'room':'layout')}>{plan?'Room':'Layout 2D'}</button></div>
       {!s.enabled&&<p className="design-hint">Simple material preview is active. Apply Design enables the prepared composition.</p>}
       <DraftControls/>
     </aside>

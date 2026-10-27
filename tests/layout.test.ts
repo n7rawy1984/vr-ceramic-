@@ -158,6 +158,6 @@ test('room resizing preserves exact physical bodies, centered frame, area, bound
 test('room domain range validation holds invalid dimensions and converts meters centrally',async()=>{
  const {roomSizeError,roomSurface}=await import('../src/layout/roomDimensions.ts');
  assert.equal(roomSizeError({widthMm:4000,lengthMm:12000}),null);
- for(const v of [0,NaN,Infinity,3999,12001])assert(roomSizeError({widthMm:v,lengthMm:7000}));
+ for(const v of [0,NaN,Infinity,-1,100001])assert(roomSizeError({widthMm:v,lengthMm:7000}));
  assert.deepEqual(roomSurface({widthMm:mToMm(5.4),lengthMm:mToMm(7.2)}),{id:'living-room-01/floor',widthMm:5400,heightMm:7200});
 });

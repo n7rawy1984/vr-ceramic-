@@ -72,6 +72,7 @@ export function Hud() {
             <button className="hud-button" onClick={()=>{design.setPresentation("room");returnToRoom();}}>Back to Room</button>
           )}
           <button className="hud-button" onClick={()=>{design.setPresentation("room");resetCamera();}} title="Reset to Overview">Reset</button>
+          <button className="hud-button" onClick={()=>design.setRoomSettingsOpen(true)}>Room Settings</button>
           <button className="hud-button" onClick={()=>design.openDesigner(selectedFloorId)}>Floor Design</button>
           <button className="hud-button" onClick={()=>{design.openDesigner(selectedFloorId);design.setPresentation("layout");}}>Layout</button>
           {vrSupport === "supported" && (
