@@ -2,7 +2,7 @@ import { WALL_IDS } from '../surfaces/model.ts';
 import { cachedWallCompile, wallSurface } from '../surfaces/compiler.ts';
 import type { MaterialProduct } from '../catalog/types.ts';
 import { FLOOR_CERAMICS } from '../catalog/materials.ts';
-import { compileLayout } from '../layout/compiler.ts';
+import { compileFloor as compileLayout } from '../panels/floor.ts';
 import { layoutAsset } from '../layout/assets.ts';
 import { roomSurface } from '../layout/roomDimensions.ts';
 import { assetReferences, normalizeAppliedState, type AppliedProjectState } from './model.ts';

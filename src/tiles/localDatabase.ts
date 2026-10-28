@@ -7,10 +7,10 @@ export function openLocalDatabase():Promise<IDBDatabase>{
   const pending=new Promise<IDBDatabase>((resolve,reject)=>{
     if(!globalThis.indexedDB){reject(Error('Device storage is unavailable.'));return;}
     let blocked=false;
-    const request=indexedDB.open('tile-configurator-local',3);
+    const request=indexedDB.open('tile-configurator-local',4);
     request.onupgradeneeded=()=>{
       const db=request.result;
-      for(const [name,keyPath] of [['tile-assets','id'],['projects','id'],['preferences','key'],['material-sources','id'],['physical-variants','id']])if(!db.objectStoreNames.contains(name))db.createObjectStore(name,{keyPath});
+      for(const [name,keyPath] of [['tile-assets','id'],['projects','id'],['preferences','key'],['material-sources','id'],['physical-variants','id'],['artwork-sources','id'],['decorative-panels','id']])if(!db.objectStoreNames.contains(name))db.createObjectStore(name,{keyPath});
       const tx=request.transaction!,cursor=tx.objectStore('tile-assets').openCursor();
       cursor.onsuccess=()=>{const row=cursor.result;if(!row)return;const migrated=migrateLegacyTile(row.value);if(migrated){tx.objectStore('material-sources').put(migrated.source);tx.objectStore('physical-variants').put(migrated.variant);row.delete();}row.continue();};
     };

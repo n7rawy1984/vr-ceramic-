@@ -1,3 +1,5 @@
+import { useArtwork } from '../panels/images';
+import { drawPanel, panelPath } from '../panels/render';
 import { drawPlacementImage } from '../layout/drawPlacementImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFloorDesign } from "../layout/useFloorDesign";
@@ -15,6 +17,7 @@ function PlanImage({product,report}:{product:MaterialProduct;report:(id:string,s
 /** One Canvas, drawn only on data/selection/size changes. No second pattern algorithm. */
 export function LayoutPlan() {
   const {products,result}=useFloorDesign();
+  const artwork=useArtwork(result.ok?result.layout.decorative?.definition.artworkSourceId??'':'');
   const selected=useFloorDesignStore(s=>s.selectedPlacementId);
   const select=useFloorDesignStore(s=>s.selectPlacement);
   const canvas=useRef<HTMLCanvasElement>(null);
@@ -35,20 +38,24 @@ export function LayoutPlan() {
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
       ctx.fillStyle='#334155';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(`${surface.widthMm} × ${surface.heightMm} mm`,width/2,18);
       ctx.translate(x,y);ctx.scale(scale,scale);ctx.fillStyle='#a6a39c';ctx.fillRect(0,0,surface.widthMm,surface.heightMm);
-      for(const p of placements){
-        ctx.save();ctx.beginPath();ctx.rect(p.xMm,p.yMm,p.widthMm,p.heightMm);ctx.clip();
-        ctx.fillStyle=COLORS[p.zoneId];ctx.fillRect(p.xMm,p.yMm,p.widthMm,p.heightMm);
+      // Draw each original body once, clipping to the union of its compiler-produced pieces.
+      // This avoids antialias seams along convex subdivision edges around curved panels.
+      const bodies=new Map<string,typeof placements>();
+      for(const p of placements){const group=bodies.get(p.sourceTileId)??[];group.push(p);bodies.set(p.sourceTileId,group);}
+      for(const pieces of bodies.values()){
+        const p=pieces[0];ctx.save();ctx.beginPath();
+        for(const piece of pieces){if(piece.polygon){piece.polygon.forEach((v,i)=>i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y));ctx.closePath();}else ctx.rect(piece.xMm,piece.yMm,piece.widthMm,piece.heightMm);}
+        ctx.clip();ctx.fillStyle=COLORS[p.zoneId];ctx.fillRect(p.tileBounds.xMm,p.tileBounds.yMm,p.tileBounds.widthMm,p.tileBounds.heightMm);
         const image=images[p.tileAssetId]?.image;
         if(image)drawPlacementImage(ctx,image,p,products.find(product=>product.id===p.tileAssetId)?.imageTransform);
-        // Outline real source-body edges only, never an L-cut's subdivision seam.
-        ctx.strokeStyle=COLORS[p.zoneId];ctx.lineWidth=.45/scale;
-        ctx.strokeRect(p.tileBounds.xMm,p.tileBounds.yMm,p.tileBounds.widthMm,p.tileBounds.heightMm);ctx.restore();
+        ctx.strokeStyle=COLORS[p.zoneId];ctx.lineWidth=.45/scale;ctx.strokeRect(p.tileBounds.xMm,p.tileBounds.yMm,p.tileBounds.widthMm,p.tileBounds.heightMm);ctx.restore();
       }
+      if(result.layout.decorative){const d=result.layout.decorative;ctx.save();ctx.translate(d.origin.x,d.origin.y);drawPanel(ctx,d.compiled,d.definition,artwork.image);ctx.restore();}
       ctx.strokeStyle='#334155';ctx.lineWidth=1.5/scale;ctx.strokeRect(0,0,surface.widthMm,surface.heightMm);
-      const p=placements.find(p=>p.id===selected);if(p){ctx.strokeStyle='#f59e0b';ctx.lineWidth=3/scale;ctx.strokeRect(p.xMm,p.yMm,p.widthMm,p.heightMm);}
+      const p=placements.find(p=>p.id===selected);if(p){ctx.strokeStyle='#f59e0b';ctx.lineWidth=3/scale;if(p.polygon){panelPath(ctx,p.polygon);ctx.stroke();}else ctx.strokeRect(p.xMm,p.yMm,p.widthMm,p.heightMm);}
     };
     draw();const observer=new ResizeObserver(draw);observer.observe(element);return()=>observer.disconnect();
-  },[result,images,selected,products]);
+  },[result,images,selected,products,artwork.image]);
   if(!result.ok)return <div className="plan-empty">Correct the dimensions or tile choices to see the plan.</div>;
   const placement=result.layout.placements.find(p=>p.id===selected);
   const errors=used.map(p=>images[p.id]?.error).filter(Boolean);
@@ -57,8 +64,8 @@ export function LayoutPlan() {
     <div className="plan-legend">{(['field','centerFrame','center'] as const).map(zone=><span key={zone}><i style={{background:COLORS[zone]}}/>{zone==='centerFrame'?'Center Frame':zone[0].toUpperCase()+zone.slice(1)}</span>)}</div>
     {errors.length>0&&<p role="alert" className="design-error">Some tile images are unavailable. Open My Tiles and Refresh. Geometry remains visible.</p>}
     <div className="plan-canvas-wrap"><canvas ref={canvas} tabIndex={0} role="img" aria-label="Floor plan. Click a tile to inspect it; left and right arrows cycle pieces."
-      data-placement-count={result.layout.placements.length}
-      onClick={e=>{const bounds=e.currentTarget.getBoundingClientRect();const t=fit.current;const x=(e.clientX-bounds.left-t.x)/t.scale,y=(e.clientY-bounds.top-t.y)/t.scale;select(result.layout.placements.find(p=>x>=p.xMm&&x<=p.xMm+p.widthMm&&y>=p.yMm&&y<=p.yMm+p.heightMm)?.id??null);}}
+      data-placement-count={result.layout.placements.length} data-panel-piece-count={result.layout.decorative?.compiled.tiles.length??0}
+      onClick={e=>{const bounds=e.currentTarget.getBoundingClientRect();const t=fit.current;const x=(e.clientX-bounds.left-t.x)/t.scale,y=(e.clientY-bounds.top-t.y)/t.scale;select(result.layout.placements.find(p=>x>=p.xMm&&x<=p.xMm+p.widthMm&&y>=p.yMm&&y<=p.yMm+p.heightMm&&(!p.polygon||p.polygon.every((a,i)=>{const b=p.polygon![(i+1)%p.polygon!.length];return (b.x-a.x)*(y-a.y)-(b.y-a.y)*(x-a.x)>=-1e-6;})))?.id??null);}}
       onKeyDown={e=>{if(e.key==='Escape')select(null);if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const ps=result.layout.placements;const found=ps.findIndex(p=>p.id===selected),step=e.key==='ArrowRight'?1:-1;const start=found<0?(step===1?-1:0):found;select(ps[(start+step+ps.length)%ps.length]?.id??null);}}}/></div>
     <div className="plan-selection" aria-live="polite">{placement?`${placement.zoneId==='centerFrame'?'Center Frame':placement.zoneId[0].toUpperCase()+placement.zoneId.slice(1)} · ${placement.fullTile?'Full tile':'Cut piece'} · ${Number(placement.widthMm.toFixed(3))} × ${Number(placement.heightMm.toFixed(3))} mm`:'Click a tile for its visible dimensions.'}</div>
   </section>;

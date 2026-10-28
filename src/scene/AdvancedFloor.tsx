@@ -1,3 +1,4 @@
+import { PanelMesh } from '../panels/PanelMesh';
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { useFloorDesign } from "../layout/useFloorDesign";
@@ -61,6 +62,7 @@ export function AdvancedFloor() {
       <planeGeometry args={[mmToM(surface.widthMm),mmToM(surface.heightMm)]}/><meshStandardMaterial color="#a6a39c" roughness={.94}/>
     </mesh>
     {groups.map(g=><AssetBatch key={g.id} product={products.find(p=>p.id===g.id)!} placements={g.placements} report={report}/>)}
+    {result.ok&&result.layout.decorative&&<PanelMesh panel={result.layout.decorative} surface={result.layout.surface}/>}
     {outline&&<lineSegments geometry={outline}><lineBasicMaterial color="#f7c66a" depthTest={false}/></lineSegments>}
   </group>;
 }

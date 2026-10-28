@@ -1,6 +1,6 @@
 import type { MaterialProduct } from '../catalog/types.ts';
 import { layoutAsset } from '../layout/assets.ts';
-import { compileLayout } from '../layout/compiler.ts';
+import { compileFloor as compileLayout } from '../panels/floor.ts';
 import type { CompileResult } from '../layout/model.ts';
 import { roomSurface } from '../layout/roomDimensions.ts';
 import { assetReferences, normalizeAppliedState, type AppliedProjectState } from '../projects/model.ts';

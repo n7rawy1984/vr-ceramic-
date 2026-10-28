@@ -1,3 +1,6 @@
+import { useArtwork } from '../panels/images';
+import { useStore } from 'zustand';
+import { panelLibrary } from '../panels/repository';
 import { PhysicalSizeEditor } from './PhysicalSizeEditor';
 import { effectiveProduct, type PhysicalSize } from '../tiles/physicalSize';
 import { MatchingSize } from './MatchingSize';
@@ -47,6 +50,7 @@ function ModularControls({field,joint,onChange}:{field:FloorInstallation['field'
 }
 /** Local edits never publish room/installation changes or rerender preview siblings. */
 function DraftControls() {
+  const panels=useStore(panelLibrary.store,s=>s.panels);
   const s=useFloorDesignStore();
   const selectedFloorId=useConfiguratorStore(v=>v.selectedFloorId);
   const {result,applyDraft,products}=useFloorDesign();
@@ -88,7 +92,12 @@ function DraftControls() {
         {i.centerFrame.enabled&&<><AssetPicker zone="centerFrame" value={i.centerFrame.tileAssetId} override={i.centerFrame.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,centerFrame:{...v.centerFrame,physicalOverride}}))} onChange={id=>update(v=>({...v,centerFrame:{...v.centerFrame,tileAssetId:id,physicalOverride:undefined}}))}/><Length label="Center Frame width (mm)" value={i.centerFrame.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,centerFrame:{...v.centerFrame,widthMm}}))}/><p className="design-hint">A tiled frame around the center area, not the room perimeter. Long edge follows each side; butt corners. Width includes the inner joint.</p></>}
       </fieldset>
       <fieldset><legend>Center</legend><label className="design-toggle"><input type="checkbox" checked={i.center.enabled} onChange={e=>update(v=>({...v,center:{...v.center,enabled:e.target.checked}}))}/>Enable center</label>
-        {i.center.enabled&&<><AssetPicker zone="center" value={i.center.tileAssetId} override={i.center.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,center:{...v.center,physicalOverride}}))} onChange={id=>update(v=>({...v,center:{...v.center,tileAssetId:id,physicalOverride:undefined}}))}/><Length label="Center width (mm)" value={i.center.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,center:{...v.center,widthMm}}))}/><Length label="Center height (mm)" value={i.center.heightMm} min={.001} onChange={heightMm=>update(v=>({...v,center:{...v.center,heightMm}}))}/><label>Center orientation<select aria-label="Center orientation" value={i.center.orientation} onChange={e=>update(v=>({...v,center:{...v.center,orientation:Number(e.target.value) as 0|90}}))}><option value={0}>0°</option><option value={90}>90°</option></select></label><p className="design-hint">Centered in the room. Area size is separate from tile body size. With Center off, Main Field fills the frame opening.</p></>}
+        {i.center.enabled&&<><label>Center fill type<select aria-label="Center fill type" value={i.center.panel?'panel':'tile'} onChange={e=>update(v=>{const center={...v.center};if(e.target.value==='tile')delete center.panel;else if(panels[0]){center.panel=structuredClone(panels[0]);center.widthMm=panels[0].widthMm;center.heightMm=panels[0].heightMm;}return {...v,center};})}><option value="tile">Normal Tile / Slab</option><option value="panel" disabled={!panels.length}>Decorative Panel</option></select></label>
+        {i.center.panel&&<><label>Decorative Panel revision<select aria-label="Decorative Panel revision" value={`${i.center.panel.id}:${i.center.panel.revision}`} onChange={e=>{const p=panels.find(p=>`${p.id}:${p.revision}`===e.target.value);if(p)update(v=>({...v,center:{...v.center,panel:structuredClone(p),widthMm:p.widthMm,heightMm:p.heightMm}}));}}>
+          {!panels.some(p=>p.id===i.center.panel?.id&&p.revision===i.center.panel?.revision)&&<option value={`${i.center.panel.id}:${i.center.panel.revision}`}>{i.center.panel.name} · saved revision {i.center.panel.revision}</option>}
+          {panels.map(p=><option key={p.id} value={`${p.id}:${p.revision}`}>{p.name} · revision {p.revision} · {p.widthMm} × {p.heightMm} mm</option>)}
+        </select></label><p className="design-hint">Panel keeps its physical size at room center. Normal Center tiles fill around a circle/ellipse. The selected snapshot does not change when the library is edited.</p></>}
+        <AssetPicker zone="center" label={i.center.panel?'Center background tile':undefined} value={i.center.tileAssetId} override={i.center.physicalOverride} onSizeChange={physicalOverride=>update(v=>({...v,center:{...v.center,physicalOverride}}))} onChange={id=>update(v=>({...v,center:{...v.center,tileAssetId:id,physicalOverride:undefined}}))}/>{!i.center.panel&&<><Length label="Center width (mm)" value={i.center.widthMm} min={.001} onChange={widthMm=>update(v=>({...v,center:{...v.center,widthMm}}))}/><Length label="Center height (mm)" value={i.center.heightMm} min={.001} onChange={heightMm=>update(v=>({...v,center:{...v.center,heightMm}}))}/><label>Center orientation<select aria-label="Center orientation" value={i.center.orientation} onChange={e=>update(v=>({...v,center:{...v.center,orientation:Number(e.target.value) as 0|90}}))}><option value={0}>0°</option><option value={90}>90°</option></select></label></>}<p className="design-hint">Centered in the room. Area size is separate from tile body size. With Center off, Main Field fills the frame opening.</p></>}
       </fieldset>
       <fieldset><legend>Joint</legend><Length label="Full joint width (mm)" value={i.jointWidthMm} step={.1} onChange={jointWidthMm=>update(v=>({...v,jointWidthMm}))}/></fieldset>
       {!result.ok&&<div className="design-error" role="alert">Applied design: {result.errors.join(" ")}</div>}
@@ -106,9 +115,13 @@ export function FloorDesign() {
   const s=useFloorDesignStore();
   const selectedFloorId=useConfiguratorStore(v=>v.selectedFloorId);
   const {result}=useFloorDesign();
-  if(!s.panelOpen&&s.presentation!=='layout')return s.enabled&&!result.ok?<div className="floor-design-status design-error" role="alert">{result.errors[0]} <button className="hud-button" onClick={()=>s.openDesigner(selectedFloorId)}>Edit Floor Design</button></div>:null;
+  const panel=s.enabled&&s.installation.center.enabled?s.installation.center.panel:undefined;
+  const artwork=useArtwork(panel?.artworkSourceId??'');
+  const warning=panel&&artwork.error?<div role="alert" className="floor-design-status design-error">{artwork.error} The panel uses a neutral physical preview; choose available artwork in Decorative Panels.</div>:null;
+  if(!s.panelOpen&&s.presentation!=='layout')return warning??(s.enabled&&!result.ok?<div className="floor-design-status design-error" role="alert">{result.errors[0]} <button className="hud-button" onClick={()=>s.openDesigner(selectedFloorId)}>Edit Floor Design</button></div>:null);
   const plan=s.presentation==='layout';
   return <div className={`floor-design-workspace${plan?' is-plan':''}`}>
+    {warning}
     {plan&&<header className="plan-workspace-header"><div><strong>Layout</strong><span>Floor plan · millimeters</span></div><button className="hud-button" onClick={()=>s.setPresentation('room')}>Room</button></header>}
     <aside className="floor-design-panel" aria-label="Floor Design">
       <header><h2>Floor Design</h2><button className="hud-button" onClick={()=>{s.closePanel();if(plan)s.setPresentation('room');}} aria-label="Close Floor Design">Close</button></header>

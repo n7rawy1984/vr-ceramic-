@@ -1,3 +1,5 @@
+import type { DecorativePanel, PointMm } from '../panels/model.ts';
+import type { CompiledPanel } from '../panels/compiler.ts';
 import type { PhysicalSize } from '../tiles/physicalSize.ts';
 /** Material references named tileAssetId identify physical variants (never image sources). */
 /** All domain lengths/areas are surface-local millimeters / square millimeters. */
@@ -18,9 +20,10 @@ export type FloorInstallation = {
   /** Internal legacy perimeter path; not exposed by the approved workflow. */
   border: { enabled: boolean; tileAssetId: string; physicalOverride?:PhysicalSize; widthMm: number; orientationRule: "follow-side" };
   centerFrame: { enabled: boolean; tileAssetId: string; physicalOverride?:PhysicalSize; widthMm: number; orientationRule: "follow-side" };
-  center: { enabled: boolean; tileAssetId: string; physicalOverride?:PhysicalSize; widthMm: number; heightMm: number; position: "center"; orientation: Orientation };
+  center: { enabled: boolean; tileAssetId: string; physicalOverride?:PhysicalSize; widthMm: number; heightMm: number; position: "center"; orientation: Orientation; panel?:DecorativePanel };
 };
 export type CompiledTilePlacement = RectMm & {
+  polygon?:PointMm[];
   id: string;
   /** Several visible pieces can belong to the same original tile body. */
   sourceTileId: string;
@@ -38,7 +41,8 @@ export type CompiledLayout = {
   surface: Surface;
   placements: CompiledTilePlacement[];
   /** Disjoint physical joint rectangles, including lower-priority zone seams. */
-  joints: RectMm[];
+  joints: (RectMm & {polygon?:PointMm[]})[];
+  decorative?:{definition:DecorativePanel;compiled:CompiledPanel;origin:PointMm};
   zones: { id: ZoneId; bounds: RectMm; regions: RectMm[] }[];
   tileAreaMm2: number;
   jointAreaMm2: number;

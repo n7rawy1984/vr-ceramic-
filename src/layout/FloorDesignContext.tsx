@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useTileProducts } from "../tiles/useTileProducts";
 import { architectureErrors, type RoomArchitecture } from "./roomArchitecture";
 import { useFloorDesignStore, type DesignConfiguration } from "../state/useFloorDesignStore";
-import { compileLayout } from "./compiler";
+import { compileFloor as compileLayout } from "../panels/floor";
 import { layoutAsset, installationAssetKey } from "./assets";
 import type { CompileResult } from "./model";
 import type { MaterialProduct } from "../catalog/types";

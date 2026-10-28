@@ -1,3 +1,4 @@
+import { PanelStudio } from './PanelStudio';
 import { useEffect, useRef, useState } from "react";
 import { BRAND } from "../config/brand";
 import { useVRSupported } from "../hooks/useVRSupported";
@@ -77,6 +78,7 @@ export function Hud() {
           <button className="hud-button" onClick={()=>design.openDesigner(selectedFloorId)}>Floor Design</button>
           <button className="hud-button" onClick={()=>design.setWallPanelOpen(true)}>Wall Design</button>
           <AutoDesign />
+          <PanelStudio />
           <button className="hud-button" onClick={()=>{design.openDesigner(selectedFloorId);design.setPresentation("layout");}}>Layout</button>
           {vrSupport === "supported" && (
             <button className="hud-button hud-button-primary" onClick={handleEnterVR}>

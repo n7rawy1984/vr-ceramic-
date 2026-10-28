@@ -10,12 +10,13 @@ export function floorWorldPoint(surface: Surface, xMm: number, yMm: number, elev
 /** Geometry conversion only. Every body/cut/rotation comes from a compiled placement. */
 export function floorBatchBuffers(surface: Surface, placements: readonly CompiledTilePlacement[],transform?:ImageTransform) {
   const positions: number[]=[],normals: number[]=[],uv: number[]=[],indices: number[]=[];
-  placements.forEach((p,i)=>{
-    for(const [x,y] of [[p.xMm,p.yMm],[p.xMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm]]) {
-      positions.push(...floorWorldPoint(surface,x,y));normals.push(0,1,0);
-      const point=imagePoint(p,x,y);const [u,v]=transformUv(...point,transform);uv.push(u,1-v);
-    }
-    const n=i*4;indices.push(n,n+1,n+2,n,n+2,n+3);
+  placements.forEach(p=>{
+    const points=p.polygon?p.polygon.map(v=>[v.x,v.y]):[[p.xMm,p.yMm],[p.xMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm+p.heightMm],[p.xMm+p.widthMm,p.yMm]];
+    const n=positions.length/3;
+    for(const [x,y] of points){positions.push(...floorWorldPoint(surface,x,y));normals.push(0,1,0);const [u,v]=transformUv(...imagePoint(p,x,y),transform);uv.push(u,1-v);}
+    // Convex panel subtraction pieces use clockwise surface coordinates; Three's floor normal faces +Y.
+    if(p.polygon)for(let k=1;k<points.length-1;k++)indices.push(n,n+k+1,n+k);
+    else indices.push(n,n+1,n+2,n,n+2,n+3);
   });
   return {positions,normals,uv,indices};
 }

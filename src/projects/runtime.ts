@@ -1,3 +1,4 @@
+import { panelLibrary } from '../panels/repository.ts';
 import { unstable_batchedUpdates } from 'react-dom';
 import { useFloorDesignStore } from '../state/useFloorDesignStore.ts';
 import { useConfiguratorStore } from '../state/useConfiguratorStore.ts';
@@ -25,7 +26,9 @@ export function createProjectRuntime(publish:(prepared:PreparedProject)=>void):P
   return {
     capture:captureAppliedProject,
     names:state=>Object.fromEntries(assetReferences(state).flatMap(id=>{const p=products().find(p=>p.id===id);return p?[[id,p.name]]:[];})),
-    prepare:async(state,names)=>{await localTileLibrary.hydrate();if(localTileLibrary.useLibrary.getState().status!=='ready')throw Error('Open My Tiles and retry loading your saved materials before opening this project.');const prepared=prepareProjectState(state,products(),names);return {state:prepared.state,warnings:prepared.warnings,commit:()=>publish(prepared)};},
+    prepare:async(state,names)=>{await localTileLibrary.hydrate();await panelLibrary.hydrate();if(localTileLibrary.useLibrary.getState().status!=='ready')throw Error('Open My Tiles and retry loading your saved materials before opening this project.');const safe=normalizeAppliedState(state),panel=safe.floorDesign.installation.center.panel,extra:string[]=[];
+      if(panel){const library=panelLibrary.store.getState();if(!library.artworks.some(a=>a.id===panel.artworkSourceId)){delete safe.floorDesign.installation.center.panel;extra.push('Decorative artwork is unavailable. Normal Center tiles were restored; other room settings were kept.');}else if(!library.panels.some(p=>p.id===panel.id))extra.push('This panel was removed from the library. Its saved project revision is preserved.');}
+      const prepared=prepareProjectState(safe,products(),names);prepared.warnings.push(...extra);return {state:prepared.state,warnings:prepared.warnings,commit:()=>publish(prepared)};},
     subscribe:changed=>{
       const a=useFloorDesignStore.subscribe((s,p)=>{if(s.lighting!==p.lighting||s.walls!==p.walls||s.roomSize!==p.roomSize||s.architecture!==p.architecture||s.installation!==p.installation||s.enabled!==p.enabled||s.started!==p.started)changed();});
       const b=useConfiguratorStore.subscribe((s,p)=>{if(s.selectedFloorId!==p.selectedFloorId||s.previousFloorId!==p.previousFloorId||s.compareActive!==p.compareActive||s.physicalOverride!==p.physicalOverride||s.previousPhysicalOverride!==p.previousPhysicalOverride)changed();});

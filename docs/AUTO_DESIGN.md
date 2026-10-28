@@ -1,5 +1,7 @@
 # Auto Design — M8 Foundation and M8.1 Guidance
 
+**M9 compatibility update:** Decorative Panels now add schema 6 project snapshots and IndexedDB v4 storage; see [DECORATIVE_PANELS.md](DECORATIVE_PANELS.md). Guided rules below remain unchanged. Keep Current Floor preserves an assigned panel and its compiled output; unlocked local planning does not generate or select panels. Schema 5/v3 references below describe the M8/M8.1 checkpoints.
+
 M8 introduced desktop **✨ Auto Design**, with deterministic Minimal, Luxury and Bold concepts. M8.1 extends it with local Guided Auto Design; the guided rules below supersede the original automatic-only defaults where guidance is supplied. This is a local metadata planner; it has no service connection, keys, image upload, backend route, new dependency or database migration. M8.1 is Guided Auto Design, not AI integration. External AI and Decorative Panel / Mural Designer remain unimplemented.
 
 ## Permanent architecture rule
@@ -212,4 +214,4 @@ The Luxury total includes the wall compiler's own LayoutCompiler invocation: one
 
 ## Future boundary
 
-Stop after M8.1 Guided Auto Design. External AI integration remains future work requiring explicit authorization; a future planner must preserve the same structured decision/geometry contract. Decorative Panel / Mural Designer is the next roadmap feature, as a standalone feature rather than a forced floor pattern, and is not started in this sprint.
+Stop after M8.1 Guided Auto Design. External AI integration remains future work requiring explicit authorization; a future planner must preserve the same structured decision/geometry contract. M9 subsequently implements standalone Decorative Panel / Mural Designer V1; see the compatibility update above. It remains separate from floor patterns and local Auto Design does not generate panels.

@@ -1,3 +1,4 @@
+import { panelLibrary } from './panels/repository';
 import { WallDesign } from './ui/WallDesign';
 import { ProjectProvider } from "./projects/ProjectProvider";
 import { Projects } from "./ui/Projects";
@@ -60,7 +61,7 @@ function Showroom() {
 }
 
 export default function App() {
-  useEffect(()=>{void localTileLibrary.hydrate();},[]);
+  useEffect(()=>{void localTileLibrary.hydrate();void panelLibrary.hydrate();},[]);
   const [sceneReady, setSceneReady] = useState(false);
   const floorImageError = useConfiguratorStore((s) => s.floorImageError);
   const plan = useFloorDesignStore((s) => s.presentation === "layout");
