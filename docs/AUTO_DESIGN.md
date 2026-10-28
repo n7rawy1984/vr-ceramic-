@@ -1,8 +1,42 @@
-# Auto Design — M8 Foundation and M8.1 Guidance
+# Auto Design — M8 / M8.1 / M8.2
 
 **M9 compatibility update:** Decorative Panels now add schema 6 project snapshots and IndexedDB v4 storage; see [DECORATIVE_PANELS.md](DECORATIVE_PANELS.md). Guided rules below remain unchanged. Keep Current Floor preserves an assigned panel and its compiled output; unlocked local planning does not generate or select panels. Schema 5/v3 references below describe the M8/M8.1 checkpoints.
 
-M8 introduced desktop **✨ Auto Design**, with deterministic Minimal, Luxury and Bold concepts. M8.1 extends it with local Guided Auto Design; the guided rules below supersede the original automatic-only defaults where guidance is supplied. This is a local metadata planner; it has no service connection, keys, image upload, backend route, new dependency or database migration. M8.1 is Guided Auto Design, not AI integration. External AI and Decorative Panel / Mural Designer remain unimplemented.
+M8 introduced desktop **✨ Auto Design**, with deterministic Minimal, Luxury and Bold concepts. M8.1 extends it with local Guided Auto Design; the guided rules below supersede the original automatic-only defaults where guidance is supplied. This is a local metadata planner; it has no service connection, keys, image upload, backend route, new dependency or database migration. M8.1 is Guided Auto Design, not AI integration. External AI remains unimplemented; M9 Decorative Panels are implemented as described above.
+
+
+## M8.2 — Adjust / Re-enter Auto Design
+
+**Adjust Design → unlock the intended subsystem → edit guidance → Preview Changes → Update Design.** The existing fresh **✨ Auto Design** workflow remains available; projects with applied history also expose **Start New Auto Design**. Adjust is available on older/manual-only rooms too. All actions remain local and deterministic.
+
+The current applied room is always the starting point. Adjust opens with all five **Keep Current** switches checked, including systems that have not changed manually. Uncheck only the system to redesign; its preference controls then become available. For example, unlock Walls and change Feature Wall from Back to Left to keep Floor, Center/Frame/Panel, Ceiling, Lighting and Furniture exact. Style, strength and material edits still obey those switches; they never silently unlock a system. Walls are preserved/redesigned as one group in M8.2; there are no per-wall locks. Only walls whose semantic configuration actually changes compile.
+
+`AppliedProjectState.autoDesign` is an optional version-1 provenance record containing the validated applied intent (style, strength, guidance, roles and locks), application timestamp, semantic decision fingerprint and five subsystem baseline fingerprints. It contains no meshes, pixels or compiled placements. History is normalized by a whitelist and cloned at document boundaries; damaged/unsupported history is discarded independently of valid room state. The field is an additive extension of project schema 6; IndexedDB stays v4. Schema 1–6 projects without history remain valid, and opening them does not force a storage rewrite.
+
+Known intent prefills the controls, including project physical-size role assignments that are still available. The preservation switches deliberately start checked for safe adjustment, even when the historical concept had unlocked systems. Unknown history displays **Starting Point: Current Room**, a neutral Current Room style choice, Auto surface guidance and the actual active floor assignment. It never labels an unknown room as a historical Minimal/Luxury/Bold design. An explicit current-room marker survives a later partial adjustment; the planner's internal Minimal fallback for unlocked Auto preferences is not displayed as historical style. Selecting a named style explicitly establishes that intent.
+
+Manual detection compares semantic fingerprints for Floor (mode, complete installation including panel snapshot, Simple/previous material and overrides, room size), Walls (four assignments and architectural clipping inputs), Ceiling (style/inset/drop and room dimensions/height), Lighting (all four settings) and Furniture. Differing known baselines show **Modified manually**. A preserved manual subsystem retains its original baseline after another subsystem updates, so its label stays meaningful. An explicitly unlocked/redesigned subsystem receives the new applied baseline. No pixel comparison or polling is used.
+
+Preview shows the changed subsystem names, per-wall before/after assignments, existing finish details and an explicit preserved list including Center/Frame/Panel. Semantic no-ops show **No design changes selected** and disable Update; the transaction also rejects no-ops before preparation. Opening, editing, Reset Guidance, generating and cancelling neither publish nor dirty a project. Reset restores the opening form and safe preserve switches, not the room. Cancel retains the previously applied provenance.
+
+Update captures current applied state at Preview, enforces locks at the transaction boundary, validates the complete proposal and prepares affected surfaces before one batched publication. Unchanged semantic subtrees and the floor result are shared with the applied snapshot. Lighting-only updates/Undo require no geometry work. A changed wall compiles only that wall; a floor-only change does not compile walls. Preserved panels invoke no panel compiler, buffer construction or image work. M8.2 neither creates panels nor substitutes a globally edited panel revision. Unlocking Floor deliberately permits the existing rules to replace Center/Panel; the dialog states this before unlocking.
+
+One-level Undo restores the complete state immediately before Update, including manual edits and prior provenance. State, project identity and material-library guards reject stale previews, and semantic edits after Update disable stale Undo. Save/Open/Duplicate/reload retain project-specific provenance with independent normalized objects; modal draft state is recreated on entry and invalidated on project switch. Undo remains session-local.
+
+Tests: `tests/adjustAutoDesign.test.ts` covers semantic detection, exact partial updates, immutable panel snapshots, no-op/cancel, stale guards, old documents and provenance round trips. `tests/browser/adjust-auto-design.mjs` drives actual controls and local project persistence, checks current-room/known re-entry, manual floor and Cool 55% lighting preservation, panel buffer/texture identity, Undo, Reset/Cancel, offline preview/update and zero API traffic. Run against a dev server with `--profile` for selective compiler/buffer call counts, and against a production preview for bundled behavior.
+
+### M8.2 verification (2026-10-28)
+
+TypeScript/production build, lint and all 15 native test files pass, including eight adjustment cases. Isolated dev coverage and production browser checks passed current-room/known re-entry, safe no-op, exact manual floor and Cool 55% lighting preservation, panel snapshot/positions/UVs/texture identity, immediate pre-adjust Undo, form-only Cancel/Reset, Save/Open/Duplicate/reload, 1280/820 px modal bounds and offline Preview/Update. Completed adjustment runs recorded zero `/api/*` requests and no runtime exceptions. Production screenshots were visually reviewed for the named panel revision, manual labels and readable per-wall comparisons.
+
+| Update | Floor compiler | LayoutCompiler | Wall compiler | Panel compiler | Floor / panel buffers |
+|---|---:|---:|---:|---:|---|
+| Lighting only | 0 | 0 | 0 | 0 | 0 / 0 |
+| Feature wall only | 0 | 1 | 1 | 0 | 0 / 0 |
+| Floor only, no assigned panel | 1 | 1 | 0 | 0 | Floor only / 0 |
+| Wall change with preserved assigned panel | 0 | 1 | 1 | 0 | 0 / 0 |
+
+Lighting-only work also recorded zero wall-buffer construction and image preparation/generation. These are local software-WebGL checks, not Quest hardware or deployment validation. The existing large-build-chunk advisory remains. The existing production Guided Auto Design regression also passed locked Modular/four-wall preservation, custom lighting, deterministic style cycling, Checker fallback, clipping, complete Undo, form reset and persistence, with zero API requests/runtime exceptions.
 
 ## Permanent architecture rule
 

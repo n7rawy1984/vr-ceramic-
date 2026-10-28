@@ -1,3 +1,4 @@
+import { changedSystems, provenanceFor } from './provenance.ts';
 import type { MaterialProduct } from '../catalog/types.ts';
 import { assetReferences, normalizeAppliedState, stateFingerprint, type AppliedProjectState } from '../projects/model.ts';
 import { prepareAutoDesign } from './prepare.ts';
@@ -19,10 +20,10 @@ type Runtime = {
   publish(prepared: Prepared): void;
   prepare?: typeof prepareAutoDesign;
 };
-/** Ephemeral one-level transaction; no project schema or persistence dependency. */
+/** Project-bound preview and one-level atomic transaction. */
 export function createAutoDesignSession(runtime: Runtime, planner: DesignPlanner) {
   let serial = 0;
-  let proposal: { decision: DesignDecision; before: AppliedProjectState; key: string; fingerprint: string; products: string } | null = null;
+  let proposal: { intent: DesignIntent; decision: DesignDecision; before: AppliedProjectState; key: string; fingerprint: string; products: string } | null = null;
   let undo: { state: AppliedProjectState; key: string; applied: string } | null = null;
   const productKey = () => JSON.stringify(runtime.products().map(p => ({ id: p.id, size: p.physicalSizeMm, w: p.tileWidth, h: p.tileHeight, kind: p.productKind, source: p.sourceId, transform: p.imageTransform, texture: p.texture, pixels: [p.pixelWidth,p.pixelHeight] })).sort((a, b) => a.id.localeCompare(b.id)));
   const prepare = runtime.prepare ?? prepareAutoDesign;
@@ -38,7 +39,7 @@ export function createAutoDesignSession(runtime: Runtime, planner: DesignPlanner
       const ids = new Set(runtime.products().map(p => p.id));
       if (assetReferences(target).some(id => !ids.has(id))) throw Error('A design material is no longer available. Choose materials again.');
       if (request !== serial || key !== runtime.projectKey() || fingerprint !== current() || products !== productKey()) throw Error('The project or material library changed. Generate a new proposal.');
-      proposal = { decision: structuredClone(decision), before, key, fingerprint, products };
+      proposal = { intent: requested, decision: structuredClone(decision), before, key, fingerprint, products };
       return structuredClone(decision);
     },
     cancel() { ++serial; proposal = null; },
@@ -47,7 +48,10 @@ export function createAutoDesignSession(runtime: Runtime, planner: DesignPlanner
       const p = proposal;
       if (!p || p.key !== runtime.projectKey() || p.fingerprint !== current() || p.products !== productKey()) throw Error('The project or material library changed. Generate a new proposal.');
       // All throwing work completes before a synchronous publication.
-      const prepared = prepare(decisionState(p.before, p.decision), runtime.products());
+      const target = decisionState(p.before, p.decision);
+      if (!changedSystems(p.before, target).length) throw Error('No design changes selected');
+      target.autoDesign = provenanceFor(target, p.intent, p.before, p.decision.preserved ?? []);
+      const prepared = prepare(target, runtime.products());
       runtime.publish(prepared);
       undo = { state: p.before, key: p.key, applied: stateFingerprint(prepared.state) };
       proposal = null;

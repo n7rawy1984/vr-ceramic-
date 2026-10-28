@@ -30,6 +30,7 @@ export const DEFAULT_GUIDANCE: DesignGuidance = {
 };
 /** Future local references only. No transport, image upload or AI service exists. */
 export type DesignIntent = {
+  startingPoint?: 'current-room';
   style: DesignStyle;
   materials: DesignMaterials;
   guidance?: Partial<DesignGuidance>;

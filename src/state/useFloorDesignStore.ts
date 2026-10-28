@@ -1,3 +1,4 @@
+import type { AutoDesignProvenance } from '../autoDesign/provenance.ts';
 import { DEFAULT_LIGHTING, normalizeLighting, type RoomLighting } from '../lighting/model.ts';
 import { defaultWalls, type WallDesigns } from '../surfaces/model.ts';
 import { create } from "zustand";
@@ -9,6 +10,7 @@ import { DEFAULT_ARCHITECTURE, type RoomArchitecture } from "../layout/roomArchi
 const initial = (id = FLOOR_CERAMICS[0].id) => defaultInstallation(FLOOR_SURFACE.id, id, FLOOR_CERAMICS[2].id, FLOOR_CERAMICS[0].id);
 export type DesignConfiguration = { roomSize: RoomSizeMm; installation: FloorInstallation };
 interface FloorDesignState {
+  autoDesign?:AutoDesignProvenance;
   lighting:RoomLighting;
   setLighting:(lighting:RoomLighting)=>void;
   walls: WallDesigns;
