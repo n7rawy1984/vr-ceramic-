@@ -683,3 +683,15 @@
 .project-size-inputs label { display: grid; gap: 5px; font-size: 12px; }
 .project-size-inputs input { box-sizing: border-box; width: 100%; min-width: 0; padding: 8px; border: 1px solid #64748b; border-radius: 4px; background: #18222c; color: #fff; }
 .project-physical-size .hud-button { margin: 4px 4px 4px 0; }
+.auto-design-entry { display: flex; gap: 6px; align-items: center; }
+.auto-design-entry [role="alert"] { max-width: 240px; color: #fecaca; font-size: 12px; }
+.auto-design-dialog { width: min(680px,calc(100vw - 24px)); }
+.auto-design-dialog .design-draft { overflow: auto; padding-right: 4px; }
+.auto-design-inputs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 10px 0 18px; }
+.auto-design-inputs label { display: grid; gap: 6px; margin: 0; }
+.auto-design-inputs select { width: 100%; min-width: 0; padding: 9px; background: #182536; color: #edf3f8; border: 1px solid #526174; border-radius: 6px; }
+.auto-design-proposal dl { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 10px 14px; }
+.auto-design-proposal dt { color: #aebfd1; }
+.auto-design-proposal dd { margin: 0; overflow-wrap: anywhere; }
+.auto-design-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+@media (max-width: 520px) { .auto-design-inputs { grid-template-columns: minmax(0,1fr); } }

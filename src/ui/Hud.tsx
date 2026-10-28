@@ -4,6 +4,7 @@ import { useVRSupported } from "../hooks/useVRSupported";
 import { useConfiguratorStore } from "../state/useConfiguratorStore";
 import { useFloorDesignStore } from "../state/useFloorDesignStore";
 import { xrStore } from "../xr/store";
+import { AutoDesign } from './AutoDesign';
 
 const ERROR_DISPLAY_MS = 4500;
 const HINT_FADE_MS = 6000;
@@ -75,6 +76,7 @@ export function Hud() {
           <button className="hud-button" onClick={()=>design.setRoomSettingsOpen(true)}>Room Settings</button>
           <button className="hud-button" onClick={()=>design.openDesigner(selectedFloorId)}>Floor Design</button>
           <button className="hud-button" onClick={()=>design.setWallPanelOpen(true)}>Wall Design</button>
+          <AutoDesign />
           <button className="hud-button" onClick={()=>{design.openDesigner(selectedFloorId);design.setPresentation("layout");}}>Layout</button>
           {vrSupport === "supported" && (
             <button className="hud-button hud-button-primary" onClick={handleEnterVR}>
