@@ -38,12 +38,20 @@ export type DesignIntent = {
   images?: { localReference: string; purpose: 'reference' | 'moodboard' | 'material' }[];
 };
 export type PlannerInput = { intent: DesignIntent; state: AppliedProjectState; products: MaterialProduct[] };
+export type MaterialRoleUsage = {
+  role: MaterialRole;
+  assignment: PhysicalAssignment;
+  status: 'used' | 'unused' | 'constrained';
+  destinations: string[];
+  reasons: string[];
+};
 /** Semantic commands only; never pixels, meshes, compiled placements or architectural changes. */
 export type DesignDecision = {
   version: 1;
   style: DesignStyle;
   strength?: DesignStrength;
   preserved?: DesignSystem[];
+  materialUsage?: MaterialRoleUsage[];
   materialState?: AppliedProjectState['materialState'];
   floor: AppliedProjectState['floorDesign'];
   walls: AppliedProjectState['walls'];

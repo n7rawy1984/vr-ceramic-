@@ -1,5 +1,5 @@
 import { changedSystems, manuallyModified } from '../autoDesign/provenance';
-import { decisionState } from '../autoDesign/session';
+import { MATCHING_ROOM_MESSAGE, decisionState } from '../autoDesign/session';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from 'zustand';
@@ -73,12 +73,14 @@ function AutoDesignDialog({ products, session, close, busy, adjust }: {
   const modified = manuallyModified(before);
   const [guidance, setGuidance] = useState<DesignGuidance>(initialGuidance);
   const [style, setStyle] = useState<DesignStyle | ''>(() => adjust ? (before.autoDesign?.intent.startingPoint ? '' : before.autoDesign?.intent.style ?? '') : 'minimal'), [proposal, setProposal] = useState<DesignDecision | null>(null), [error, setError] = useState(''), [working, setWorking] = useState(false);
+  const [guidanceChanged, setGuidanceChanged] = useState(false);
+  const changes = proposal ? changedSystems(before, decisionState(before, proposal)) : [];
   const proposalElement = useRef<HTMLElement>(null);
   useEffect(() => { if (proposal) { proposalElement.current?.scrollIntoView({ block: 'start' }); proposalElement.current?.focus({ preventScroll: true }); } }, [proposal]);
   useEffect(() => { const d = dialog.current; d?.showModal(); return () => { session.cancel(); d?.close(); }; }, [session]);
-  const reset = () => { session.cancel(); setProposal(null); setError(''); };
+  const reset = () => { session.guidanceChanged(); setGuidanceChanged(previous => previous || proposal !== null); setProposal(null); setError(''); };
   async function generate(next = style) {
-    setStyle(next); setError(''); setWorking(true); setProposal(null);
+    setGuidanceChanged(false); setStyle(next); setError(''); setWorking(true); setProposal(null);
     const materials: DesignMaterials = {};
     for (const role of ['primary', 'secondary', 'accent', 'feature'] as const) if (roles[role] !== '') materials[role] = choices[Number(roles[role])]?.assignment;
     try { setProposal(await session.generate({ style: next || 'minimal', ...(next === '' ? {startingPoint:'current-room' as const} : {}), materials, guidance })); } catch (e) { setError((e as Error).message); } finally { setWorking(false); }
@@ -116,10 +118,12 @@ function AutoDesignDialog({ products, session, close, busy, adjust }: {
         <details className="auto-design-section" open><summary>Preserve current choices</summary><div className="auto-design-locks">
           {DESIGN_SYSTEMS.map(key=><label className="design-toggle" key={key}><input type="checkbox" checked={!!guidance.locks[key]} disabled={working} onChange={e=>{reset();setGuidance(g=>({...g,locks:{...g.locks,[key]:e.target.checked}}));}}/>Keep Current {key[0].toUpperCase()+key.slice(1)}{adjust && modified.includes(key) ? ' · Modified manually' : ''}</label>)}
         </div></details>
+        {guidanceChanged && <p role="status" className="auto-design-stale"><strong>Guidance changed.</strong> Preview the updated design before applying.</p>}
         <div className="auto-design-actions"><button className="hud-button" disabled={working} onClick={resetGuidance}>Reset Guidance</button>
         {!proposal && <button className="hud-button hud-button-primary" disabled={working || busy} onClick={() => void generate()}>{working ? 'Generating…' : adjust ? 'Preview Changes' : 'Generate Proposal'}</button>}</div>
         {proposal && <section ref={proposalElement} tabIndex={-1} className="auto-design-proposal" aria-label="Design proposal"><h3>{adjust ? 'Design Changes · ' : ''}{adjust && !style ? 'Current Room' : proposal.style[0].toUpperCase() + proposal.style.slice(1) + ' Concept'} — {proposal.strength?.[0].toUpperCase()}{proposal.strength?.slice(1)}</h3>
-          {adjust && <p role="status">{changedSystems(before, decisionState(before,proposal)).length ? `Changed: ${changedSystems(before, decisionState(before,proposal)).map(s=>systemName[s]).join(', ')}` : 'No design changes selected'}</p>}
+          <p role="status">{changes.length ? `Changed: ${changes.map(s=>systemName[s]).join(', ')}` : MATCHING_ROOM_MESSAGE}</p>
+          {!!proposal.materialUsage?.length && <dl aria-label="Material role usage">{proposal.materialUsage.map(u=><Fragment key={u.role}><dt>{u.role[0].toUpperCase()+u.role.slice(1)}</dt><dd data-material-role={u.role} data-role-status={u.status}>{name(u.assignment)} → {u.status==='used' ? u.destinations.join(', ') : u.status==='constrained' ? 'Unable to place with current constraints' : 'Not assigned by this proposal'}{u.reasons.map(reason=><p className="design-hint" key={reason}>{reason}</p>)}</dd></Fragment>)}</dl>}
           {!!proposal.preserved?.length && <p className="auto-design-preserved"><strong>Preserved:</strong> {proposal.preserved.map(s=>s==='floor' && adjust ? 'Floor design (including Center / Frame / Panel)' : systemName[s]).join(', ')}</p>}
           {proposal.warnings.some(w=>w.includes('Fallback:')||w.includes('cannot be satisfied'))&&<p role="status">Can apply with adjustments. Review the choices below.</p>}
           <dl>
@@ -133,7 +137,7 @@ function AutoDesignDialog({ products, session, close, busy, adjust }: {
           <dt>Lighting</dt><dd>{proposal.preserved?.includes('lighting')?'Preserved · ':`${lightingName(before.lighting.lightingColor)} ${before.lighting.lightingBrightness}% → `}{proposal.lighting.lightingEnabled?`${lightingName(proposal.lighting.lightingColor)} · ${proposal.lighting.lightingBrightness}%`:'Off'}</dd>
           <dt>Furniture</dt><dd>{proposal.preserved?.includes('furniture')?'Preserved · ':''}{proposal.furnitureVisible?'Shown':'Hidden'}</dd>
         </dl>{proposal.warnings.map(w => <p className="design-hint" key={w}>{w}</p>)}<details><summary>Design choices</summary>{proposal.reasons.map(r => <p key={r}>{r}</p>)}</details>
-          <div className="auto-design-actions"><button className="hud-button hud-button-primary" disabled={busy || working || (adjust && !changedSystems(before, decisionState(before,proposal)).length)} onClick={() => { try { session.apply(); close(); } catch (e) { setError((e as Error).message); } }}>{adjust ? 'Update Design' : 'Apply Design'}</button><button className="hud-button" disabled={working || busy} onClick={() => void generate(DESIGN_STYLES[(DESIGN_STYLES.indexOf(style || 'minimal') + 1) % DESIGN_STYLES.length])}>Try Another Style</button></div>
+          <div className="auto-design-actions"><button className="hud-button hud-button-primary" disabled={busy || working || !changes.length} onClick={() => { try { session.apply(); close(); } catch (e) { setError((e as Error).message); } }}>{adjust ? 'Update Design' : 'Apply Design'}</button><button className="hud-button" disabled={working || busy} onClick={() => void generate(DESIGN_STYLES[(DESIGN_STYLES.indexOf(style || 'minimal') + 1) % DESIGN_STYLES.length])}>Try Another Style</button></div>
         </section>}
         {error && <p className="design-error" role="alert">{error}</p>}
       </div>

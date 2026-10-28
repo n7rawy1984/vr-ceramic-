@@ -12,6 +12,7 @@ export function decisionState(before: AppliedProjectState, decision: DesignDecis
     architecture: { ...before.architecture, ceiling: decision.ceiling, furnitureVisible: decision.furnitureVisible },
     lighting: decision.lighting, materialState: decision.materialState ?? { ...before.materialState, compareActive: false } });
 }
+export const MATCHING_ROOM_MESSAGE = 'This proposal matches the current room. No room changes will be applied.';
 type Prepared = ReturnType<typeof prepareAutoDesign>;
 type Runtime = {
   capture(): AppliedProjectState;
@@ -22,7 +23,7 @@ type Runtime = {
 };
 /** Project-bound preview and one-level atomic transaction. */
 export function createAutoDesignSession(runtime: Runtime, planner: DesignPlanner) {
-  let serial = 0;
+  let serial = 0, guidanceChanged = false;
   let proposal: { intent: DesignIntent; decision: DesignDecision; before: AppliedProjectState; key: string; fingerprint: string; products: string } | null = null;
   let undo: { state: AppliedProjectState; key: string; applied: string } | null = null;
   const productKey = () => JSON.stringify(runtime.products().map(p => ({ id: p.id, size: p.physicalSizeMm, w: p.tileWidth, h: p.tileHeight, kind: p.productKind, source: p.sourceId, transform: p.imageTransform, texture: p.texture, pixels: [p.pixelWidth,p.pixelHeight] })).sort((a, b) => a.id.localeCompare(b.id)));
@@ -39,17 +40,20 @@ export function createAutoDesignSession(runtime: Runtime, planner: DesignPlanner
       const ids = new Set(runtime.products().map(p => p.id));
       if (assetReferences(target).some(id => !ids.has(id))) throw Error('A design material is no longer available. Choose materials again.');
       if (request !== serial || key !== runtime.projectKey() || fingerprint !== current() || products !== productKey()) throw Error('The project or material library changed. Generate a new proposal.');
+      guidanceChanged = false;
       proposal = { intent: requested, decision: structuredClone(decision), before, key, fingerprint, products };
       return structuredClone(decision);
     },
+    guidanceChanged() { ++serial; proposal = null; guidanceChanged = true; },
     cancel() { ++serial; proposal = null; },
     invalidate() { ++serial; proposal = null; undo = null; },
     apply() {
+      if (guidanceChanged) throw Error('Guidance changed. Preview the updated design before applying.');
       const p = proposal;
       if (!p || p.key !== runtime.projectKey() || p.fingerprint !== current() || p.products !== productKey()) throw Error('The project or material library changed. Generate a new proposal.');
       // All throwing work completes before a synchronous publication.
       const target = decisionState(p.before, p.decision);
-      if (!changedSystems(p.before, target).length) throw Error('No design changes selected');
+      if (!changedSystems(p.before, target).length) throw Error(MATCHING_ROOM_MESSAGE);
       target.autoDesign = provenanceFor(target, p.intent, p.before, p.decision.preserved ?? []);
       const prepared = prepare(target, runtime.products());
       runtime.publish(prepared);

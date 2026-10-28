@@ -1,3 +1,4 @@
+import { materialUsageTracker } from './materialUsage.ts';
 import { layoutAsset } from '../layout/assets.ts';
 import { defaultInstallation } from '../layout/model.ts';
 import { FLOOR_SURFACE } from '../layout/floorSurface.ts';
@@ -38,11 +39,14 @@ export class LocalRulePlanner implements DesignPlanner {
     for (const role of ['primary', 'secondary', 'accent', 'feature'] as const) {
       const a = intent.materials[role]; if (a) facts[role] = materialFacts(a, products);
     }
+    const usage = materialUsageTracker(intent.materials);
+    const record = (fact: typeof facts.primary, destination: string, outcome: 'used' | 'constrained' = 'used', reason?: string) => usage.record((Object.keys(facts) as MaterialRole[]).find(role=>facts[role]===fact),destination,outcome,reason);
     const current = state.floorDesign.enabled ? state.floorDesign.installation.field : { tileAssetId: state.materialState.selectedFloorId, physicalOverride: state.materialState.physicalOverride };
     const primary = facts.primary ?? facts.secondary ?? facts.accent ?? facts.feature ?? (g.locks.floor ? materialFacts(current, products) : undefined);
     if (!primary) throw Error('Choose at least one material.');
     const i = defaultInstallation(FLOOR_SURFACE.id, primary.product.id, primary.product.id, primary.product.id);
     Object.assign(i.field, primary.assignment);
+    if (!g.locks.floor) record(primary, 'Floor');
     const walls = defaultWalls();
     for (const wall of Object.values(walls)) Object.assign(wall, primary.assignment);
     const warnings: string[] = [], reasons: string[] = ['Supplied physical bodies are preserved; no size variants are created.'];
@@ -55,6 +59,7 @@ export class LocalRulePlanner implements DesignPlanner {
       if (g.floorPattern === 'checker') {
         valid = valid && !!secondary && secondary.size.productKind !== 'slab' && Math.abs(primary.size.widthMm-secondary.size.widthMm)<1e-6 && Math.abs(primary.size.heightMm-secondary.size.heightMm)<1e-6;
         if (valid && secondary) {
+          record(secondary, 'Checker Floor');
           i.field.secondaryTileAssetId = secondary.assignment.tileAssetId;
           i.field.secondaryPhysicalOverride = secondary.assignment.physicalOverride;
         }
@@ -68,7 +73,10 @@ export class LocalRulePlanner implements DesignPlanner {
           valid = valid && secondary.size.productKind !== 'slab' && small.size.productKind !== 'slab' && multiSizeModule(i.field, i.jointWidthMm, new Map(products.map(p => [p.id, layoutAsset(p)]))).errors.length === 0;
         } else valid = false;
       }
+      if (valid && g.floorPattern === 'modular') { record(secondary, 'Modular Floor B'); record(facts.accent, 'Modular Floor C'); }
       if (!valid) {
+        if (g.floorPattern === 'checker' || g.floorPattern === 'modular') record(secondary, 'Floor', 'constrained', 'Requested floor pattern is incompatible with the supplied sizes or Slab assignments; Straight is used.');
+        if (g.floorPattern === 'modular') record(facts.accent, 'Floor', 'constrained', 'Modular sizes and joints do not fit; Straight is used.');
         warnings.push(`${g.floorPattern === 'checker' ? 'Checker' : g.floorPattern === 'modular' ? 'Modular' : 'Running Bond'} cannot be used with the current material sizes or Slab assignments. Fallback: Straight. No material is stretched.`);
         i.field.pattern = 'straight'; delete i.field.secondaryTileAssetId; delete i.field.secondaryPhysicalOverride; delete i.field.modular;
       }
@@ -81,18 +89,26 @@ export class LocalRulePlanner implements DesignPlanner {
       const fraction = dramatic ? .5 : .4;
       const width = Math.floor(state.roomSize.widthMm * fraction), height = Math.floor(state.roomSize.lengthMm * fraction);
       if (center && center !== primary && minRoom >= 2000 && center.size.widthMm <= width && center.size.heightMm <= height) {
+        record(center, 'Center');
         Object.assign(i.center, center.assignment, { enabled: true, widthMm: width, heightMm: height });
-      } else if (g.center === 'on') warn('floor', 'Center On cannot be satisfied: choose a separate Secondary or Accent material whose physical body fits the center. Center remains Off.');
+      } else {
+        record(center, 'Center', 'constrained', 'Center requires a separate material body that fits the available center and room dimensions.');
+        if (g.center === 'on') warn('floor', 'Center On cannot be satisfied: choose a separate Secondary or Accent material whose physical body fits the center. Center remains Off.');
       else reasons.push('Center omitted: no separate fitting body is available.');
+      }
     }
     const frame = intent.style === 'bold' ? facts.secondary : facts.accent;
     const wantFrame = g.centerFrame === 'on' || (g.centerFrame === 'auto' && !subtle && (intent.style !== 'minimal' || dramatic));
     if (!g.locks.floor && wantFrame) {
       const band = Math.min(dramatic ? 200 : 150, Math.floor(minRoom * (dramatic ? .05 : .04)));
       if (i.center.enabled && frame && frame !== center && frame.size.productKind !== 'slab' && Math.min(frame.size.widthMm, frame.size.heightMm) <= band*4) {
+        record(frame, 'Center Frame');
         Object.assign(i.centerFrame, frame.assignment, { enabled: true, widthMm: band });
-      } else if (g.centerFrame === 'on') warn('floor', 'Center Frame On cannot be satisfied without an enabled Center and a separate suitably sized Tile. Frame remains Off.');
+      } else {
+        record(frame, 'Center Frame', 'constrained', 'Center Frame requires an enabled Center and a separate suitably sized Tile; Slabs cannot form this frame.');
+        if (g.centerFrame === 'on') warn('floor', 'Center Frame On cannot be satisfied without an enabled Center and a separate suitably sized Tile. Frame remains Off.');
       else reasons.push('Center frame omitted: no enabled center or suitable separate Tile.');
+      }
     }
     let featureWall: WallId | null = null;
     const explicitWall = WALL_IDS.includes(g.featureWall as WallId);
@@ -103,6 +119,7 @@ export class LocalRulePlanner implements DesignPlanner {
         (intent.style === 'luxury' ? Number(b.f.size.productKind==='slab')-Number(a.f.size.productKind==='slab') : 0) || (b.f.quality.pixelsPerMm??0)-(a.f.quality.pixelsPerMm??0) || a.rank-b.rank)[0]?.f ?? (explicitWall || g.wallCoverage === 'multiple' ? primary : undefined);
       if (feature) {
         featureWall = explicitWall ? g.featureWall as WallId : featureWallFor(state);
+        record(feature, `${featureWall[0].toUpperCase()+featureWall.slice(1)} Wall`);
         Object.assign(walls[featureWall], feature.assignment, { enabled: true });
         const surface = wallSurface(featureWall,state.roomSize,state.architecture);
         if (explicitWall && surface.openings.length) warn('walls', `The ${featureWall} wall has a door or window. The finish will be clipped around the real opening.`);
@@ -112,6 +129,7 @@ export class LocalRulePlanner implements DesignPlanner {
             const x=wallSurface(a,state.roomSize,state.architecture),y=wallSurface(b,state.roomSize,state.architecture);
             return x.openings.length-y.openings.length || y.widthMm-x.widthMm;
           })[0];
+          record(primary, `${additional[0].toUpperCase()+additional.slice(1)} Wall`);
           Object.assign(walls[additional],primary.assignment,{enabled:true});
           reasons.push(`Multiple Walls adds only ${additional} in Primary; remaining walls stay neutral.`);
         }
@@ -131,6 +149,7 @@ export class LocalRulePlanner implements DesignPlanner {
     // Quality is advisory for actual unlocked placements, not discarded candidates.
     const assignments = [ ...(!g.locks.floor ? [i.field,...(i.center.enabled?[i.center]:[]),...(i.centerFrame.enabled?[i.centerFrame]:[]),...(i.field.pattern==='checker'&&facts.secondary?[facts.secondary.assignment]:[]),...(i.field.pattern==='modular'&&i.field.modular?[i.field.modular.b,i.field.modular.c]:[])] : []), ...(!g.locks.walls ? Object.values(walls).filter(w=>w.enabled) : []) ];
     for (const a of assignments) { const f=materialFacts(a,products); if(f.quality.warning) decision.warnings.push(`${f.product.name}: ${f.quality.warning}`); }
+    decision.materialUsage = usage.finish(g.locks);
     decision.warnings=[...new Set(decision.warnings)];
     return decision;
   }

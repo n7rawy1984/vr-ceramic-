@@ -720,3 +720,5 @@
 .panel-library-grid article { padding:14px; border:1px solid #526174; border-radius:8px; }
 .panel-library-grid h3 { margin:0; overflow-wrap:anywhere; }
 @media(max-width:760px){.panel-studio-workspace { grid-template-columns:240px minmax(0,1fr); gap:10px; }.panel-studio{padding:12px;}.panel-preview{padding:6px;}}
+
+.auto-design-actions .hud-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
