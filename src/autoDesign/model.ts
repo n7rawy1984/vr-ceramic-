@@ -46,7 +46,11 @@ export type MaterialRoleUsage = {
   reasons: string[];
 };
 /** Semantic commands only; never pixels, meshes, compiled placements or architectural changes. */
+export type AIPlannerInfo = {generatedBy:'ai';provider:'openai';model:string;plannerVersion:1};
 export type DesignDecision = {
+  plannerInfo?:AIPlannerInfo;
+  appliedIntent?:DesignIntent;
+  summary?:string;
   version: 1;
   style: DesignStyle;
   strength?: DesignStrength;

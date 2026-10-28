@@ -6,7 +6,7 @@ const b=await projectBrowser(url,true),{evaluate,until,button,field,send,settled
 const edit=async(label,value)=>{await field(label,value);await settled();};
 const save=()=>evaluate(`p.save('Adjust room').then(()=>record().projectDocument)`);
 async function surfaces(){await b.click(`[...document.querySelectorAll('.auto-design-section')].find(e=>e.querySelector('summary').textContent==='Surfaces & room').querySelector('summary')`);}
-async function unlock(name){await b.click(`[...document.querySelectorAll('.auto-design-locks label')].find(e=>e.textContent.startsWith('Keep Current ${name}')).querySelector('input')`);await settled();}
+async function unlock(name){if(!await evaluate(`[...document.querySelectorAll('.auto-design-locks label')].find(e=>e.textContent.startsWith('Keep Current ${name}')).querySelector('input').checked`))return;await b.click(`[...document.querySelectorAll('.auto-design-locks label')].find(e=>e.textContent.startsWith('Keep Current ${name}')).querySelector('input')`);await settled();}
 async function preview(){await button('Preview Changes');await until(`!!document.querySelector('.auto-design-proposal')`);await settled();}
 async function update(){await button('Update Design');await until(`!document.querySelector('dialog[open]')`);await settled();}
 async function escape(){await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await until(`!document.querySelector('dialog[open]')`);}

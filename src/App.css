@@ -722,3 +722,11 @@
 @media(max-width:760px){.panel-studio-workspace { grid-template-columns:240px minmax(0,1fr); gap:10px; }.panel-studio{padding:12px;}.panel-preview{padding:6px;}}
 
 .auto-design-actions .hud-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.ai-design-context { display: grid; gap: 12px; }
+.ai-design-context>label:not(.design-toggle) { display:grid; gap:6px; }
+.ai-design-context textarea, .ai-design-context select { width:100%; box-sizing:border-box; padding:9px; color:#edf3f8; background:#182536; border:1px solid #526174; border-radius:6px; font:inherit; }
+.ai-design-context textarea { min-height:84px; resize:vertical; }
+.ai-design-context input[type=file] { max-width:100%; }
+
+.auto-design-entry .hud-button:disabled { opacity: .45; cursor: not-allowed; }
