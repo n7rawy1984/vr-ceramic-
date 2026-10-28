@@ -10,7 +10,7 @@ const notices=[];
 try{
  await evaluate(`(async()=>{const es=performance.getEntriesByType('resource'),mod=async n=>import(es.find(e=>e.name.includes(n)).name);window.x=(await mod('/src/xr/store.ts')).xrStore;window.capture=(await mod('/src/projects/runtime.ts')).captureAppliedProject;const lib=(await mod('/src/tiles/demoLibrary.ts')).localTileLibrary;await lib.createVariant('source:vintage-a',{name:'M8 XR slab',widthMm:1200,heightMm:2400,productKind:'slab'});r.getState().gl.xr.setFramebufferScaleFactor(.25);})()`);
  await until(`!!x.getState().emulator&&ctx().products.some(p=>p.name==='M8 XR slab')`);
- await button('✨ Auto Design');await field('Style','luxury');const slabChoice=await evaluate(`(()=>{const s=document.querySelector('select[aria-label="secondary material"]');return [...s.options].find(o=>o.textContent.includes('M8 XR slab')).value})()`);await field('Secondary material',slabChoice);await button('Generate Proposal');await until(`!!document.querySelector('.auto-design-proposal')`);await button('Apply Design');await until(`!document.querySelector('dialog[open]')&&!!r.getState().scene.getObjectByName('wall-tiles-left')`);
+ await button('✨ Auto Design');await field('Style','luxury');if(process.argv.includes('--guided')){await field('Design Strength','dramatic');await b.click(`[...document.querySelectorAll('.auto-design-section')].find(e=>e.querySelector('summary').textContent==='Surfaces & room').querySelector('summary')`);await field('Feature Wall','left');await field('Center Frame','off');await field('Lighting','warm');}const slabChoice=await evaluate(`(()=>{const s=document.querySelector('select[aria-label="secondary material"]');return [...s.options].find(o=>o.textContent.includes('M8 XR slab')).value})()`);await field('Secondary material',slabChoice);await button('Generate Proposal');await until(`!!document.querySelector('.auto-design-proposal')`);await button('Apply Design');await until(`!document.querySelector('dialog[open]')&&!!r.getState().scene.getObjectByName('wall-tiles-left')`);
  const state=await evaluate('JSON.stringify(capture())'),floor=await evaluate('JSON.stringify(ctx().result)'),wall=await evaluate(`JSON.stringify([...r.getState().scene.getObjectByName('wall-tiles-left').geometry.attributes.position.array])`),camera=await evaluate('r.getState().camera.uuid');
  const cycles=[];
  for(let cycle=1;cycle<=2;cycle++){
@@ -23,5 +23,5 @@ try{
  }
  assert.deepEqual(cycles[0],cycles[1]);
  for(let i=b.errors.length-1;i>=0;i--)if(b.errors[i]?.includes('Offer superseded by a new offerSession call.')&&/emulate-|iwer/.test(b.errors[i]))notices.push(...b.errors.splice(i,1));
- b.check();console.log(JSON.stringify({appliedLuxuryPreserved:true,slabBuffersUnchanged:true,planDemandAndXRContinuous:true,noAutoDesignXRUI:true,cycles,zeroAPI:true,sdkNotices:notices.length,errors:b.errors}));
+ b.check();console.log(JSON.stringify({appliedLuxuryPreserved:true,guided:process.argv.includes('--guided'),slabBuffersUnchanged:true,planDemandAndXRContinuous:true,noAutoDesignXRUI:true,cycles,zeroAPI:true,sdkNotices:notices.length,errors:b.errors}));
 }finally{b.close()}

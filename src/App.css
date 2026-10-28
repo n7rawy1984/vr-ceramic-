@@ -695,3 +695,9 @@
 .auto-design-proposal dd { margin: 0; overflow-wrap: anywhere; }
 .auto-design-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 @media (max-width: 520px) { .auto-design-inputs { grid-template-columns: minmax(0,1fr); } }
+.auto-design-section { border-bottom: 1px solid #ffffff20; padding: 10px 0; }
+.auto-design-section > summary { cursor: pointer; font-weight: 600; }
+.auto-design-locks { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 12px; margin-top: 8px; }
+.auto-design-locks .design-toggle { font-size: 12px; }
+.auto-design-preserved { color: #b4d9bd; }
+.auto-design-inputs select:disabled { opacity: .55; }

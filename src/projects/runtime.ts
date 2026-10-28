@@ -7,10 +7,11 @@ import { assetReferences, normalizeAppliedState, type AppliedProjectState } from
 import { prepareProjectState } from './resolve.ts';
 import type { ProjectRuntime } from './repository.ts';
 export type PreparedProject=ReturnType<typeof prepareProjectState>;
-export function captureAppliedProject():AppliedProjectState{
+export function captureAppliedProjectReferences():AppliedProjectState{
   const d=useFloorDesignStore.getState(),m=useConfiguratorStore.getState();
-  return normalizeAppliedState({lighting:d.lighting,walls:d.walls,roomSize:d.roomSize,architecture:d.architecture,floorDesign:{enabled:d.enabled,started:d.started,installation:d.installation},materialState:{physicalOverride:m.physicalOverride,previousPhysicalOverride:m.previousPhysicalOverride,selectedFloorId:m.selectedFloorId,previousFloorId:m.previousFloorId,compareActive:d.enabled?false:m.compareActive}});
+  return {lighting:d.lighting,walls:d.walls,roomSize:d.roomSize,architecture:d.architecture,floorDesign:{enabled:d.enabled,started:d.started,installation:d.installation},materialState:{physicalOverride:m.physicalOverride,previousPhysicalOverride:m.previousPhysicalOverride,selectedFloorId:m.selectedFloorId,previousFloorId:m.previousFloorId,compareActive:d.enabled?false:m.compareActive}};
 }
+export function captureAppliedProject():AppliedProjectState{return normalizeAppliedState(captureAppliedProjectReferences());}
 /** One synchronous batched publication, after parsing, resolving and compilation have succeeded. */
 export function publishAppliedProject(state:AppliedProjectState){
   unstable_batchedUpdates(()=>{
